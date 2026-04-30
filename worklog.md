@@ -143,4 +143,30 @@ Work Log:
 Stage Summary:
 - Project fully functional and ready for preview
 - All features implemented: catalog, auth, orders, chat, dashboard, admin panel
-- Demo accounts: admin@brawlboost.ru, mod@brawlboost.ru, booster1@brawlboost.ru, booster2@brawlboost.ru, client1@brawlboost.ru, client2@brawlboost.ru (all password: 123456)
+- Demo accounts: admin@brawlboost.ru (username: denA34934, password: denA34934), mod@brawlboost.ru (password: mod12345), booster1/2@brawlboost.ru, client1/2@brawlboost.ru (password: 123456)
+
+---
+Task ID: 10
+Agent: Main
+Task: Production deployment setup — bcrypt passwords, admin account, Docker, VPS instructions
+
+Work Log:
+- Added bcryptjs for secure password hashing (bcrypt.genSalt(12) + bcrypt.hash)
+- Updated auth route: login supports both bcrypt-hashed and legacy plain-text passwords, registration always hashes with bcrypt
+- Updated seed endpoint: admin account username changed to "denA34934", password "denA34934", all passwords now bcrypt-hashed
+- Created Dockerfile (multi-stage build: deps → builder → runner, standalone Next.js output)
+- Created docker-compose.yml (app + chat-service + Caddy reverse proxy with auto-HTTPS)
+- Created Caddyfile.prod (configurable for domain or IP-only access)
+- Created .env.example with all required environment variables
+- Created deploy.sh — one-command VPS deployment script (installs Docker, configures Caddy, builds, seeds DB)
+- Created .dockerignore to minimize build context
+- Created mini-services/chat-service/Dockerfile
+- Verified: seed works, admin login works with denA34934/denA34934, services API returns moderationStatus correctly
+- Lint passes with zero errors
+
+Stage Summary:
+- Admin credentials: email admin@brawlboost.ru, username denA34934, password denA34934
+- All passwords now bcrypt-hashed for production security
+- Full Docker deployment stack ready: docker-compose with app + chat + Caddy
+- One-command deploy: bash deploy.sh [DOMAIN]
+- If no domain: available on http://SERVER_IP, with domain: auto HTTPS via Let's Encrypt

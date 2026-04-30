@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
 export async function POST() {
   try {
@@ -13,6 +14,26 @@ export async function POST() {
     await db.category.deleteMany()
     await db.platformSettings.deleteMany()
     await db.user.deleteMany()
+
+    // Hash all passwords with bcrypt
+    const salt = await bcrypt.genSalt(12)
+    const hashPassword = (pw: string) => bcrypt.hash(pw, salt)
+
+    const [
+      adminPw,
+      modPw,
+      booster1Pw,
+      booster2Pw,
+      client1Pw,
+      client2Pw,
+    ] = await Promise.all([
+      hashPassword('denA34934'),
+      hashPassword('mod12345'),
+      hashPassword('123456'),
+      hashPassword('123456'),
+      hashPassword('123456'),
+      hashPassword('123456'),
+    ])
 
     // ─── Create Categories ─────────────────────────────────────────────
     const [trophyCat, brawlerCat, questCat, rankCat] = await Promise.all([
@@ -36,8 +57,8 @@ export async function POST() {
         db.user.create({
           data: {
             email: 'admin@brawlboost.ru',
-            username: 'AdminBrawl',
-            password: '123456',
+            username: 'denA34934',
+            password: adminPw,
             role: 'admin',
             avatar: null,
             balance: 0,
@@ -52,7 +73,7 @@ export async function POST() {
           data: {
             email: 'mod@brawlboost.ru',
             username: 'ModeratorPro',
-            password: '123456',
+            password: modPw,
             role: 'moderator',
             avatar: null,
             balance: 0,
@@ -67,7 +88,7 @@ export async function POST() {
           data: {
             email: 'booster1@brawlboost.ru',
             username: 'BoosterMax',
-            password: '123456',
+            password: booster1Pw,
             role: 'booster',
             avatar: null,
             balance: 15000,
@@ -86,7 +107,7 @@ export async function POST() {
           data: {
             email: 'booster2@brawlboost.ru',
             username: 'ProBooster',
-            password: '123456',
+            password: booster2Pw,
             role: 'booster',
             avatar: null,
             balance: 8500,
@@ -101,7 +122,7 @@ export async function POST() {
           data: {
             email: 'client1@brawlboost.ru',
             username: 'BrawlFan2024',
-            password: '123456',
+            password: client1Pw,
             role: 'client',
             avatar: null,
             balance: 5000,
@@ -116,7 +137,7 @@ export async function POST() {
           data: {
             email: 'client2@brawlboost.ru',
             username: 'GamerPro99',
-            password: '123456',
+            password: client2Pw,
             role: 'client',
             avatar: null,
             balance: 3000,
@@ -379,7 +400,7 @@ export async function POST() {
     // ─── Create Orders ─────────────────────────────────────────────────
     const order1 = await db.order.create({
       data: {
-        serviceId: services[0].id, // Буст трофеев до 5000
+        serviceId: services[0].id,
         clientId: client1.id,
         boosterId: booster1.id,
         status: 'completed',
@@ -394,7 +415,7 @@ export async function POST() {
 
     const order2 = await db.order.create({
       data: {
-        serviceId: services[2].id, // Получение Леона
+        serviceId: services[2].id,
         clientId: client2.id,
         boosterId: booster1.id,
         status: 'in_progress',
@@ -408,7 +429,7 @@ export async function POST() {
 
     const order3 = await db.order.create({
       data: {
-        serviceId: services[5].id, // Буст до Мастера
+        serviceId: services[5].id,
         clientId: client1.id,
         boosterId: booster1.id,
         status: 'in_progress',
@@ -422,7 +443,7 @@ export async function POST() {
 
     const order4 = await db.order.create({
       data: {
-        serviceId: services[4].id, // Выполнение квестов сезона
+        serviceId: services[4].id,
         clientId: client2.id,
         boosterId: booster2.id,
         status: 'pending',
@@ -435,7 +456,7 @@ export async function POST() {
 
     const order5 = await db.order.create({
       data: {
-        serviceId: services[3].id, // Получение Кроу
+        serviceId: services[3].id,
         clientId: client1.id,
         boosterId: booster2.id,
         status: 'disputed',
@@ -449,7 +470,7 @@ export async function POST() {
 
     const order6 = await db.order.create({
       data: {
-        serviceId: services[6].id, // Прокачка бойца до 11 уровня
+        serviceId: services[6].id,
         clientId: client2.id,
         boosterId: booster2.id,
         status: 'completed',
@@ -706,6 +727,12 @@ export async function POST() {
         reviews: 5,
         chatMessages: 8,
         notifications: 9,
+        adminCredentials: {
+          email: 'admin@brawlboost.ru',
+          username: 'denA34934',
+          password: 'denA34934',
+          role: 'admin',
+        },
       },
     })
   } catch (error) {

@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Main Next.js application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: brawlboost-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./db/custom.db
+      - NODE_ENV=production
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-this-to-random-string}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+    volumes:
+      - brawlboost-db:/app/db
+    networks:
+      - brawlboost-network
+
+  # Socket.IO Chat Service
+  chat-service:
+    build:
+      context: ./mini-services/chat-service
+      dockerfile: Dockerfile
+    container_name: brawlboost-chat
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    networks:
+      - brawlboost-network
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: brawlboost-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+      - chat-service
+    networks:
+      - brawlboost-network
+
+volumes:
+  brawlboost-db:
+  caddy_data:
+  caddy_config:
+
+networks:
+  brawlboost-network:
+    driver: bridge

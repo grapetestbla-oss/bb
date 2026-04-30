@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
   try {
@@ -32,8 +33,16 @@ export async function POST(request: Request) {
         )
       }
 
-      // Simple plain text comparison for demo
-      if (user.password !== password) {
+      // Check if password is bcrypt hash or plain text (for migration)
+      let passwordMatch = false
+      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        passwordMatch = await bcrypt.compare(password, user.password)
+      } else {
+        // Legacy plain text comparison (will be migrated on next seed)
+        passwordMatch = user.password === password
+      }
+
+      if (!passwordMatch) {
         return NextResponse.json(
           { error: 'Неверный пароль' },
           { status: 401 }
@@ -54,6 +63,13 @@ export async function POST(request: Request) {
         )
       }
 
+      if (password.length < 6) {
+        return NextResponse.json(
+          { error: 'Пароль должен быть не менее 6 символов' },
+          { status: 400 }
+        )
+      }
+
       const existingEmail = await db.user.findUnique({ where: { email } })
       if (existingEmail) {
         return NextResponse.json(
@@ -70,12 +86,15 @@ export async function POST(request: Request) {
         )
       }
 
-      // Store plain text password for demo purposes
+      // Hash password with bcrypt
+      const salt = await bcrypt.genSalt(12)
+      const hashedPassword = await bcrypt.hash(password, salt)
+
       const user = await db.user.create({
         data: {
           email,
           username,
-          password,
+          password: hashedPassword,
           role: 'client',
         },
       })

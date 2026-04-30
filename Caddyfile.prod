@@ -1,0 +1,43 @@
+# Replace YOUR_DOMAIN with your actual domain (e.g., brawlboost.ru)
+# Caddy will automatically provision HTTPS via Let's Encrypt
+
+YOUR_DOMAIN {
+    # Chat service - Socket.IO
+    @chat_query query XTransformPort=*
+    handle @chat_query {
+        reverse_proxy chat-service:3003 {
+            header_up Host {host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Main Next.js app
+    handle {
+        reverse_proxy app:3000 {
+            header_up Host {host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/brawlboost.log
+    }
+}
+
+# HTTP to HTTPS redirect (Caddy handles this automatically when domain is used)
+# If you want HTTP-only (no domain, just IP), use the config below instead:
+
+# :80 {
+#     @chat_query query XTransformPort=*
+#     handle @chat_query {
+#         reverse_proxy chat-service:3003
+#     }
+#     handle {
+#         reverse_proxy app:3000
+#     }
+# }
