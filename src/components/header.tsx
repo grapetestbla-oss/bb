@@ -30,6 +30,7 @@ import {
   Shield,
   LayoutDashboard,
   Zap,
+  Plus,
 } from "lucide-react";
 
 export function Header() {
@@ -43,6 +44,7 @@ export function Header() {
     logout,
     toggleTheme,
     getTheme,
+    setShowCreateService,
   } = useAppStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = getTheme();
@@ -117,6 +119,17 @@ export function Header() {
               </Button>
             );
           })}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCreateService(true)}
+              className="text-neon-orange hover:text-neon-orange/80 hover:bg-neon-orange/10"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Создать
+            </Button>
+          )}
         </nav>
 
         {/* Search */}
@@ -251,6 +264,19 @@ export function Header() {
                       </Button>
                     );
                   })}
+                  {isAuthenticated && (
+                    <Button
+                      variant="ghost"
+                      className="justify-start text-neon-orange hover:text-neon-orange/80 hover:bg-neon-orange/10"
+                      onClick={() => {
+                        setShowCreateService(true);
+                        setMobileOpen(false);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Создать услугу
+                    </Button>
+                  )}
                 </nav>
 
                 {/* Mobile auth */}

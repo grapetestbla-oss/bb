@@ -7,8 +7,22 @@ export async function GET(request: Request) {
     const category = searchParams.get('category')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort') || 'popular'
+    const userId = searchParams.get('userId')
+    const includePending = searchParams.get('includePending') === 'true'
 
-    const where: Record<string, unknown> = { active: true }
+    const where: Record<string, unknown> = {}
+
+    if (userId) {
+      // When fetching user's own services, show all moderation statuses
+      where.boosterId = userId
+      if (!includePending) {
+        where.active = true
+      }
+    } else {
+      // Catalog: only show active and approved services
+      where.active = true
+      where.moderationStatus = 'approved'
+    }
 
     if (category) {
       const categoryRecord = await db.category.findUnique({
@@ -102,6 +116,12 @@ export async function POST(request: Request) {
       )
     }
 
+    // Check the user's role — boosters and admins get auto-approved, others need moderation
+    const user = await db.user.findUnique({ where: { id: boosterId } })
+    const moderationStatus = user && (user.role === 'booster' || user.role === 'admin' || user.role === 'moderator')
+      ? 'approved'
+      : 'pending'
+
     const service = await db.service.create({
       data: {
         title,
@@ -113,6 +133,7 @@ export async function POST(request: Request) {
         estimatedTime: estimatedTime || '1-3 дня',
         features: JSON.stringify(features || []),
         requirements: JSON.stringify(requirements || []),
+        moderationStatus,
       },
       include: {
         category: true,
@@ -127,6 +148,21 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    // Create notification for moderators about new service pending review
+    if (moderationStatus === 'pending') {
+      const moderators = await db.user.findMany({
+        where: { role: { in: ['moderator', 'admin'] } },
+      })
+      await db.notification.createMany({
+        data: moderators.map((mod) => ({
+          userId: mod.id,
+          title: 'Новая услуга на проверке',
+          message: `Услуга "${title}" от ${user?.username || 'пользователя'} ожидает модерации`,
+          type: 'info',
+        })),
+      })
+    }
 
     const { features: f, requirements: r, ...rest } = service
     const parsedService = {

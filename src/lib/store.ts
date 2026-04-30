@@ -35,6 +35,8 @@ export interface Service {
   features: string[];
   requirements: string[];
   active: boolean;
+  moderationStatus: "pending" | "approved" | "rejected";
+  rejectionReason: string | null;
   ordersCount: number;
   rating: number;
   reviewsCount: number;
@@ -139,8 +141,8 @@ interface AppState {
   selectedCategory: string | null;
   sortBy: "popular" | "price_asc" | "price_desc" | "rating" | "newest";
   authTab: "login" | "register";
-  adminTab: "dashboard" | "users" | "orders" | "reviews" | "settings" | "logs";
-  dashboardTab: "orders" | "balance" | "notifications" | "achievements";
+  adminTab: "dashboard" | "users" | "orders" | "reviews" | "services" | "settings" | "logs";
+  dashboardTab: "orders" | "balance" | "notifications" | "achievements" | "my-services";
   isLoading: boolean;
   
   // Actions
@@ -158,8 +160,12 @@ interface AppState {
   setSelectedCategory: (category: string | null) => void;
   setSortBy: (sort: "popular" | "price_asc" | "price_desc" | "rating" | "newest") => void;
   setAuthTab: (tab: "login" | "register") => void;
-  setAdminTab: (tab: "dashboard" | "users" | "orders" | "reviews" | "settings" | "logs") => void;
-  setDashboardTab: (tab: "orders" | "balance" | "notifications" | "achievements") => void;
+  setAdminTab: (tab: "dashboard" | "users" | "orders" | "reviews" | "services" | "settings" | "logs") => void;
+  setDashboardTab: (tab: "orders" | "balance" | "notifications" | "achievements" | "my-services") => void;
+  myServices: Service[];
+  setMyServices: (services: Service[]) => void;
+  showCreateService: boolean;
+  setShowCreateService: (show: boolean) => void;
   setIsLoading: (loading: boolean) => void;
   toggleTheme: () => void;
   getTheme: () => "dark" | "light";
@@ -189,6 +195,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   authTab: "login",
   adminTab: "dashboard",
   dashboardTab: "orders",
+  myServices: [],
+  showCreateService: false,
   isLoading: false,
   
   // Actions
@@ -208,6 +216,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAuthTab: (tab) => set({ authTab: tab }),
   setAdminTab: (tab) => set({ adminTab: tab }),
   setDashboardTab: (tab) => set({ dashboardTab: tab }),
+  setMyServices: (services) => set({ myServices: services }),
+  setShowCreateService: (show) => set({ showCreateService: show }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   
   toggleTheme: () => {

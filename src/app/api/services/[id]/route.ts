@@ -86,6 +86,8 @@ export async function PATCH(
     if (body.active !== undefined) updateData.active = body.active
     if (body.features !== undefined) updateData.features = JSON.stringify(body.features)
     if (body.requirements !== undefined) updateData.requirements = JSON.stringify(body.requirements)
+    if (body.moderationStatus !== undefined) updateData.moderationStatus = body.moderationStatus
+    if (body.rejectionReason !== undefined) updateData.rejectionReason = body.rejectionReason
 
     const service = await db.service.update({
       where: { id },

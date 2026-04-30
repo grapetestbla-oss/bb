@@ -189,8 +189,27 @@ export async function GET(request: Request) {
       return NextResponse.json(logs)
     }
 
+    if (action === 'pending-services') {
+      const services = await db.service.findMany({
+        where: {
+          moderationStatus: { in: ['pending', 'rejected'] },
+        },
+        include: {
+          category: {
+            select: { name: true },
+          },
+          booster: {
+            select: { username: true, role: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return NextResponse.json({ services })
+    }
+
     return NextResponse.json(
-      { error: 'Укажите action: stats, users, orders, reviews или logs' },
+      { error: 'Укажите action: stats, users, orders, reviews, pending-services или logs' },
       { status: 400 }
     )
   } catch (error) {

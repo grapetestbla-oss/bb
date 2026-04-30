@@ -19,8 +19,10 @@ import {
   Target,
   TrendingUp,
   Search,
+  Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { CreateServiceDialog } from "@/components/create-service-dialog";
 
 const categoryIcons: Record<string, typeof Trophy> = {
   trophies: Trophy,
@@ -43,6 +45,11 @@ export function CatalogView() {
     setCategories,
     isLoading,
     setIsLoading,
+    isAuthenticated,
+    showCreateService,
+    setShowCreateService,
+    setMyServices,
+    myServices,
   } = useAppStore();
 
   const [localSearch, setLocalSearch] = useState(searchQuery);
@@ -214,26 +221,39 @@ export function CatalogView() {
             })}
           </div>
 
-          {/* Sort */}
-          <Select
-            value={sortBy}
-            onValueChange={(val) =>
-              setSortBy(
-                val as "popular" | "price_asc" | "price_desc" | "rating" | "newest"
-              )
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Сортировка" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="popular">Популярные</SelectItem>
-              <SelectItem value="price_asc">Цена ↑</SelectItem>
-              <SelectItem value="price_desc">Цена ↓</SelectItem>
-              <SelectItem value="rating">Рейтинг</SelectItem>
-              <SelectItem value="newest">Новые</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Sort + Create button */}
+          <div className="flex items-center gap-2">
+            <Select
+              value={sortBy}
+              onValueChange={(val) =>
+                setSortBy(
+                  val as "popular" | "price_asc" | "price_desc" | "rating" | "newest"
+                )
+              }
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Сортировка" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="popular">Популярные</SelectItem>
+                <SelectItem value="price_asc">Цена ↑</SelectItem>
+                <SelectItem value="price_desc">Цена ↓</SelectItem>
+                <SelectItem value="rating">Рейтинг</SelectItem>
+                <SelectItem value="newest">Новые</SelectItem>
+              </SelectContent>
+            </Select>
+            {isAuthenticated && (
+              <Button
+                onClick={() => setShowCreateService(true)}
+                className="bg-neon-orange hover:bg-neon-orange/80 text-white shrink-0"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                <span className="hidden sm:inline">Создать услугу</span>
+                <span className="sm:hidden">Создать</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Services grid */}
@@ -284,6 +304,12 @@ export function CatalogView() {
           </div>
         )}
       </section>
+
+      {/* Create Service Dialog */}
+      <CreateServiceDialog
+        open={showCreateService}
+        onOpenChange={setShowCreateService}
+      />
     </div>
   );
 }

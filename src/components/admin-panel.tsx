@@ -7,7 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -39,6 +47,9 @@ import {
   Ban,
   CheckCircle,
   Search,
+  Package,
+  XCircle,
+  Eye,
 } from "lucide-react";
 import {
   AreaChart,
@@ -96,6 +107,19 @@ interface AdminLog {
   moderator?: { username: string };
 }
 
+interface AdminService {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  moderationStatus: string;
+  rejectionReason: string | null;
+  active: boolean;
+  createdAt: string;
+  category?: { name: string };
+  booster?: { username: string; role: string };
+}
+
 const statusLabels: Record<string, string> = {
   pending: "Ожидание",
   in_progress: "В работе",
@@ -123,8 +147,10 @@ export function AdminPanel() {
   const [adminOrders, setAdminOrders] = useState<AdminOrder[]>([]);
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [pendingServices, setPendingServices] = useState<AdminService[]>([]);
   const [loading, setLoading] = useState(true);
   const [userSearch, setUserSearch] = useState("");
+  const [rejectionDialog, setRejectionDialog] = useState<{ id: string; reason: string } | null>(null);
 
   useEffect(() => {
     if (
@@ -197,6 +223,39 @@ export function AdminPanel() {
     }
   };
 
+  const fetchPendingServices = async () => {
+    try {
+      const res = await fetch("/api/admin?action=pending-services");
+      if (res.ok) {
+        const data = await res.json();
+        setPendingServices(Array.isArray(data) ? data : (data.services || []));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleModerateService = async (serviceId: string, action: "approve" | "reject", reason?: string) => {
+    try {
+      const res = await fetch(`/api/services/${serviceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moderationStatus: action === "approve" ? "approved" : "rejected",
+          rejectionReason: action === "reject" ? reason : null,
+        }),
+      });
+      if (res.ok) {
+        toast.success(action === "approve" ? "Услуга одобрена" : "Услуга отклонена");
+        fetchPendingServices();
+      } else {
+        toast.error("Ошибка");
+      }
+    } catch {
+      toast.error("Ошибка сети");
+    }
+  };
+
   useEffect(() => {
     if (
       !isAuthenticated ||
@@ -213,6 +272,7 @@ export function AdminPanel() {
         fetchOrders(),
         fetchReviews(),
         fetchLogs(),
+        fetchPendingServices(),
       ]);
       setLoading(false);
     };
@@ -312,7 +372,7 @@ export function AdminPanel() {
           value={adminTab}
           onValueChange={(val) =>
             setAdminTab(
-              val as "dashboard" | "users" | "orders" | "reviews" | "settings" | "logs"
+              val as "dashboard" | "users" | "orders" | "reviews" | "services" | "settings" | "logs"
             )
           }
         >
@@ -344,6 +404,18 @@ export function AdminPanel() {
             >
               <Star className="h-3.5 w-3.5 mr-1.5" />
               Отзывы
+            </TabsTrigger>
+            <TabsTrigger
+              value="services"
+              className="data-[state=active]:bg-neon-blue/20 data-[state=active]:text-neon-blue"
+            >
+              <Package className="h-3.5 w-3.5 mr-1.5" />
+              Услуги
+              {pendingServices.length > 0 && (
+                <Badge className="ml-1.5 bg-neon-orange text-white text-[10px] px-1.5 py-0 border-0">
+                  {pendingServices.filter(s => s.moderationStatus === "pending").length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -798,6 +870,133 @@ export function AdminPanel() {
             </Card>
           </TabsContent>
 
+          {/* Services Moderation */}
+          <TabsContent value="services" className="mt-0">
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-neon-orange" />
+                  Модерация услуг
+                  {pendingServices.filter(s => s.moderationStatus === "pending").length > 0 && (
+                    <Badge className="bg-neon-orange text-white text-[10px] px-1.5 border-0">
+                      {pendingServices.filter(s => s.moderationStatus === "pending").length} на проверке
+                    </Badge>
+                  )}
+                </h3>
+                {loading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-28 w-full" />
+                    ))}
+                  </div>
+                ) : pendingServices.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-12">
+                    Нет услуг для модерации
+                  </p>
+                ) : (
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {pendingServices.map((service) => (
+                      <div
+                        key={service.id}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          service.moderationStatus === "pending"
+                            ? "border-neon-yellow/30 bg-neon-yellow/5"
+                            : service.moderationStatus === "approved"
+                            ? "border-neon-green/30 bg-neon-green/5"
+                            : "border-destructive/30 bg-destructive/5"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h4 className="font-semibold text-sm">{service.title}</h4>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  service.moderationStatus === "pending"
+                                    ? "bg-neon-yellow/20 text-neon-yellow border-neon-yellow/30"
+                                    : service.moderationStatus === "approved"
+                                    ? "bg-neon-green/20 text-neon-green border-neon-green/30"
+                                    : "bg-destructive/20 text-destructive border-destructive/30"
+                                }
+                              >
+                                {service.moderationStatus === "pending"
+                                  ? "На проверке"
+                                  : service.moderationStatus === "approved"
+                                  ? "Одобрено"
+                                  : "Отклонено"}
+                              </Badge>
+                              {!service.active && (
+                                <Badge variant="outline" className="bg-muted/50 text-muted-foreground">
+                                  Неактивна
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                              {service.description}
+                            </p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="font-semibold text-neon-orange">
+                                {service.price.toLocaleString("ru-RU")} ₽
+                              </span>
+                              <span>от {service.booster?.username || "Неизвестный"}</span>
+                              {service.booster?.role && (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                  {service.booster.role === "client" ? "Клиент" : service.booster.role === "booster" ? "Бустер" : service.booster.role}
+                                </Badge>
+                              )}
+                              {service.category && <span>{service.category.name}</span>}
+                              <span>{new Date(service.createdAt).toLocaleDateString("ru-RU")}</span>
+                            </div>
+                            {service.rejectionReason && (
+                              <p className="text-xs text-destructive mt-1">
+                                Причина отклонения: {service.rejectionReason}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {service.moderationStatus === "pending" && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-neon-green border-neon-green/30 hover:bg-neon-green/10"
+                                  onClick={() => handleModerateService(service.id, "approve")}
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                  Одобрить
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10"
+                                  onClick={() => setRejectionDialog({ id: service.id, reason: "" })}
+                                >
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                                  Отклонить
+                                </Button>
+                              </>
+                            )}
+                            {service.moderationStatus !== "pending" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs"
+                                onClick={() => handleModerateService(service.id, "approve")}
+                              >
+                                Вернуть
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings */}
           <TabsContent value="settings" className="mt-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -910,6 +1109,40 @@ export function AdminPanel() {
           </TabsContent>
         </Tabs>
       </motion.div>
+
+      {/* Rejection Dialog */}
+      <Dialog open={!!rejectionDialog} onOpenChange={(open) => !open && setRejectionDialog(null)}>
+        <DialogContent className="sm:max-w-[400px] bg-background border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Причина отклонения</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            placeholder="Укажите причину отклонения услуги..."
+            value={rejectionDialog?.reason || ""}
+            onChange={(e) =>
+              rejectionDialog && setRejectionDialog({ ...rejectionDialog, reason: e.target.value })
+            }
+            className="bg-secondary/50 border-border/50 focus:border-neon-blue/50 min-h-[80px]"
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRejectionDialog(null)}>
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (rejectionDialog) {
+                  handleModerateService(rejectionDialog.id, "reject", rejectionDialog.reason || "Нарушение правил");
+                  setRejectionDialog(null);
+                }
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Отклонить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

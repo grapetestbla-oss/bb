@@ -98,6 +98,33 @@ Stage Summary:
 - Lint passes with zero errors
 
 ---
+Task ID: 9
+Agent: Main
+Task: Add ability for regular users to create services/products
+
+Work Log:
+- Updated Prisma schema: added moderationStatus (pending/approved/rejected) and rejectionReason fields to Service model
+- Updated Zustand store: added myServices, setMyServices, showCreateService, setShowCreateService, updated dashboardTab type to include "my-services"
+- Created CreateServiceDialog component with full form (title, description, price, category, features, requirements, estimated time)
+- Updated services API (POST): auto-approve for boosters/admins, set moderationStatus="pending" for clients, create moderator notifications
+- Updated services API (GET): added userId and includePending query params, catalog only shows approved services
+- Updated services API ([id] PATCH): added moderationStatus and rejectionReason fields
+- Updated UserDashboard: added "Мои услуги" tab with service listing, edit dialog, toggle active, delete confirmation, moderation status badges
+- Updated CatalogView: added "Создать услугу" button next to sort dropdown for authenticated users
+- Updated Header: added "Создать" button in desktop nav and mobile menu
+- Updated AdminPanel: added "Услуги" tab with moderation interface (approve/reject with reason dialog, badge counter for pending)
+- Updated Admin API: added action=pending-services endpoint
+- Pushed schema changes, lint passes with zero errors
+
+Stage Summary:
+- Regular users (clients) can now create services via "Создать услугу" button
+- New services from clients go through moderation (status: pending) before appearing in catalog
+- Boosters/admins services are auto-approved
+- User dashboard shows "Мои услуги" tab with edit/toggle/delete management
+- Admin panel has services moderation tab with approve/reject capabilities
+- Moderation status badges and rejection reasons are displayed throughout
+
+---
 Task ID: 8
 Agent: Main
 Task: Integration testing and final verification
