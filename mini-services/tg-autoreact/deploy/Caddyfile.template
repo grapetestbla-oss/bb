@@ -1,0 +1,29 @@
+# Caddy для панели tg-autoreact. Сертификат Let's Encrypt Caddy получает сам.
+# Домен и порт подставляет bootstrap.sh при установке.
+
+${DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# Панель слушает только localhost, наружу её отдаёт Caddy по HTTPS.
+	reverse_proxy 127.0.0.1:${WEB_PORT}
+
+	log {
+		output file /var/log/caddy/tg-autoreact.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
+
+# Если нужен доступ и по www — заведите A-запись на www и раскомментируйте:
+# www.${DOMAIN} {
+# 	redir https://${DOMAIN}{uri} permanent
+# }
