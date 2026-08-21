@@ -30,7 +30,10 @@ if [ -z "${WEB_PASSWORD:-}" ] && [ -t 0 ]; then
   echo
 fi
 if [ -n "${WEB_PASSWORD:-}" ]; then
-  TG_AUTOREACT_WEB_PASSWORD="$WEB_PASSWORD" "$APP_DIR/.venv/bin/python" -m tg_autoreact.webpass \
+  # Пакет лежит в $APP_DIR и в venv не устанавливается, поэтому -m находит его
+  # только через PYTHONPATH: рабочий каталог здесь — тот, откуда запустили скрипт.
+  TG_AUTOREACT_WEB_PASSWORD="$WEB_PASSWORD" PYTHONPATH="$APP_DIR" \
+    "$APP_DIR/.venv/bin/python" -m tg_autoreact.webpass \
     --config "$APP_DIR/config.json" --apply --host "$WEB_HOST" --port "$WEB_PORT"
 fi
 
