@@ -1,0 +1,30 @@
+{
+  "accounts": [
+    {
+      "name": "acc1",
+      "enabled": true,
+      "api_id": 123456,
+      "api_hash": "0123456789abcdef0123456789abcdef",
+      "session": "1BVtsOK...длинная строка из python -m tg_autoreact.login...",
+      "proxy": null
+    },
+    {
+      "name": "acc2",
+      "enabled": true,
+      "api_id": 123456,
+      "api_hash": "0123456789abcdef0123456789abcdef",
+      "session": "1BVtsOK...",
+      "proxy": {
+        "type": "socks5",
+        "host": "127.0.0.1",
+        "port": 1080,
+        "username": "user",
+        "password": "pass"
+      },
+      "overrides": {
+        "limits": { "per_account_per_minute": 10 },
+        "filters": { "channels": false }
+      }
+    }
+  ]
+}

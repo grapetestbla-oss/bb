@@ -1,0 +1,48 @@
+{
+  "reaction": {
+    "emoji": "❤️‍🔥",
+    "fallback_emojis": ["❤‍🔥", "🔥", "❤️"],
+    "big": false,
+    "add_to_recent": false
+  },
+  "limits": {
+    "per_account_per_minute": 20,
+    "min_interval_seconds": 1.5,
+    "per_chat_cooldown_seconds": 0.0,
+    "delay_min_seconds": 0.5,
+    "delay_max_seconds": 3.0,
+    "max_queue_size": 500,
+    "max_flood_wait_retry_seconds": 300
+  },
+  "filters": {
+    "skip_outgoing": true,
+    "private": true,
+    "groups": true,
+    "channels": true,
+    "bots": true,
+    "skip_service_messages": true,
+    "whitelist_chat_ids": [],
+    "blacklist_chat_ids": []
+  },
+  "backfill": {
+    "enabled": false,
+    "dialogs_limit": 50,
+    "messages_per_dialog": 20
+  },
+  "runtime": {
+    "accounts_file": "accounts.json",
+    "accounts_reload_seconds": 30,
+    "stats_interval_seconds": 300,
+    "restart_backoff_seconds": [5, 15, 60, 300],
+    "chat_error_cooldown_seconds": 1800,
+    "device_model": "Desktop",
+    "system_version": "Linux",
+    "app_version": "1.0"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/autoreact.log",
+    "max_bytes": 10485760,
+    "backup_count": 5
+  }
+}
