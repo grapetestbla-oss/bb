@@ -28,6 +28,19 @@ die() { printf '\033[1;31mОшибка: %s\033[0m\n' "$*" >&2; exit 1; }
 
 export DEBIAN_FRONTEND=noninteractive
 
+DNS_OK=1
+if [ "${SKIP_CADDY:-0}" != "1" ]; then
+  SERVER_IP="$(curl -s --max-time 10 https://api.ipify.org || true)"
+  DOMAIN_IP="$(getent hosts "$DOMAIN" 2>/dev/null | awk '{print $1}' | head -1 || true)"
+  if [ -z "$DOMAIN_IP" ]; then
+    DNS_OK=0
+    printf '\033[1;33mВнимание: у %s нет A-записи. Caddy поставим, но сертификат он получит только после того, как запись появится.\033[0m\n' "$DOMAIN"
+  elif [ -n "$SERVER_IP" ] && [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
+    DNS_OK=0
+    printf '\033[1;33mВнимание: %s ведёт на %s, а этот сервер — %s. Сертификат не выдадут, пока запись не исправлена.\033[0m\n' "$DOMAIN" "$DOMAIN_IP" "$SERVER_IP"
+  fi
+fi
+
 say "Пакеты"
 apt-get update -qq
 apt-get install -y -qq python3 python3-venv python3-pip curl ca-certificates gnupg ufw >/dev/null
@@ -110,12 +123,26 @@ for _ in $(seq 1 12); do
   sleep 5
 done
 echo "https://$DOMAIN/ -> HTTP ${PUBLIC_CODE:-нет ответа}"
+if [ "$PUBLIC_CODE" != "200" ]; then
+  if [ "$DNS_OK" = "0" ]; then
+    echo "  причина — DNS: добавьте A-запись $DOMAIN -> $(curl -s --max-time 5 https://api.ipify.org || echo '<ip этого сервера>')."
+    echo "  Caddy повторяет попытку выпуска сертификата сам, переустанавливать ничего не нужно."
+  else
+    echo "  смотрите: journalctl -u caddy -n 50"
+  fi
+fi
+
+if [ "${PRINT_PASSWORD:-1}" = "1" ]; then
+  PASSWORD_LINE="  Пароль:  $WEB_PASSWORD"
+else
+  PASSWORD_LINE="  Пароль:  (задан заранее, в лог не печатается)"
+fi
 
 cat <<MSG
 
 ────────────────────────────────────────────────────────────
   Панель:  https://$DOMAIN
-  Пароль:  $WEB_PASSWORD
+$PASSWORD_LINE
 ────────────────────────────────────────────────────────────
 
   Сменить пароль:
@@ -126,6 +153,6 @@ cat <<MSG
   Аккаунты:  $APP_DIR/accounts.json (права 600, там живые сессии)
 
 MSG
-[ "${GENERATED:-0}" = "1" ] && echo "  Пароль сгенерирован автоматически — сохраните его сейчас." && echo
+[ "${GENERATED:-0}" = "1" ] && [ "${PRINT_PASSWORD:-1}" = "1" ] && echo "  Пароль сгенерирован автоматически — сохраните его сейчас." && echo
 echo "  Не забудьте сменить root-пароль сервера и настроить вход по SSH-ключу."
 echo

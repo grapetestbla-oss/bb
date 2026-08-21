@@ -21,6 +21,24 @@
   (20 реакций в минуту на аккаунт, пауза 0.5–3 с перед каждой). Поднимать их — риск
   ваших аккаунтов.
 
+## Установка с телефона (одна команда на сервере)
+
+Нужен любой SSH-клиент (Termius, JuiceSSH, Blink, ConnectBot). Подключитесь к серверу
+как `root` и вставьте одну строку — она скачает код с GitHub и всё настроит:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/grapetestbla-oss/bb/claude/telegram-auto-reaction-script-wrx20c/mini-services/tg-autoreact/deploy/vps-install.sh | DOMAIN=brawlboost.us bash
+```
+
+Свой пароль панели вместо сгенерированного:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/grapetestbla-oss/bb/claude/telegram-auto-reaction-script-wrx20c/mini-services/tg-autoreact/deploy/vps-install.sh | DOMAIN=brawlboost.us WEB_PASSWORD='свой-пароль' bash
+```
+
+В конце скрипт напечатает адрес панели и пароль. Повторный запуск той же команды
+обновляет код и перезапускает сервис, не трогая `accounts.json` и пароль панели.
+
 ## Деплой на VPS с доменом (одной командой)
 
 С локальной машины, из корня проекта:
@@ -261,6 +279,7 @@ tg_autoreact/
     tglogin.py       пошаговый вход: телефон → код → 2FA
     static/          интерфейс (без сборки, чистые HTML/CSS/JS)
 deploy/
+  vps-install.sh     установка на сервере одной строкой: скачать с GitHub → bootstrap
   deploy.sh          запуск с локальной машины: упаковать → скопировать → установить
   bootstrap.sh       установка на сервере: пакеты, сервис, Caddy, фаервол, проверки
   Caddyfile.template шаблон конфига Caddy для домена
