@@ -9,38 +9,25 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-from .config import normalize_account
-from .tg import build_proxy
+from .accounts_store import upsert_account
+from .tg import build_proxy, parse_proxy_url
 
 DEFAULT_ACCOUNTS = Path(__file__).resolve().parent.parent / "accounts.json"
 
 
 def parse_proxy(value: str | None) -> dict[str, Any] | None:
-    """socks5://user:pass@host:1080 -> словарь прокси."""
-    if not value:
-        return None
-    parsed = urlparse(value)
-    if not parsed.hostname or not parsed.port:
-        raise SystemExit(f"не разобрал прокси: {value} (нужен вид socks5://host:port)")
-    proxy: dict[str, Any] = {
-        "type": parsed.scheme or "socks5",
-        "host": parsed.hostname,
-        "port": parsed.port,
-    }
-    if parsed.username:
-        proxy["username"] = parsed.username
-        proxy["password"] = parsed.password or ""
-    return proxy
+    try:
+        return parse_proxy_url(value)
+    except ValueError as exc:
+        raise SystemExit(f"не разобрал прокси {value}: {exc}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -54,28 +41,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--accounts", default=str(DEFAULT_ACCOUNTS), help="путь к accounts.json")
     parser.add_argument("--print-only", action="store_true", help="только показать session-строку, не сохранять")
     return parser.parse_args(argv)
-
-
-def load_file(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"accounts": []}
-    with path.open("r", encoding="utf-8") as fh:
-        data = json.load(fh)
-    if isinstance(data, list):
-        return {"accounts": data}
-    data.setdefault("accounts", [])
-    return data
-
-
-def save_file(path: Path, data: dict[str, Any]) -> None:
-    """Атомарная запись с правами 0600 — в файле лежат живые сессии."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, indent=2)
-        fh.write("\n")
-    os.chmod(tmp, 0o600)
-    os.replace(tmp, path)
 
 
 async def login(args: argparse.Namespace) -> tuple[str, str]:
@@ -119,7 +84,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     accounts_path = Path(args.accounts)
-    data = load_file(accounts_path)
 
     entry: dict[str, Any] = {
         "name": name,
@@ -133,17 +97,8 @@ def main(argv: list[str] | None = None) -> int:
         entry["proxy"] = proxy
     if args.bot_token:
         entry["bot_token"] = args.bot_token
-    normalize_account(entry)
 
-    accounts = data["accounts"]
-    for index, existing in enumerate(accounts):
-        if existing.get("name") == name:
-            accounts[index] = {**existing, **entry}
-            break
-    else:
-        accounts.append(entry)
-
-    save_file(accounts_path, data)
+    upsert_account(accounts_path, entry)
     print(f"Сохранено в {accounts_path}. Сервис подхватит аккаунт в течение минуты — перезапуск не нужен.")
     return 0
 

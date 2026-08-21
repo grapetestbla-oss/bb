@@ -15,4 +15,7 @@ COPY config.json ./config.json
 #   docker run -v $PWD/accounts.json:/app/accounts.json -v $PWD/logs:/app/logs ...
 VOLUME ["/app/logs"]
 
+# Порт веб-панели (включается в config.json).
+EXPOSE 8088
+
 CMD ["python", "-m", "tg_autoreact", "--config", "/app/config.json"]

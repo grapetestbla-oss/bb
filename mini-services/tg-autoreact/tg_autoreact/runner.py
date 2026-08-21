@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from dataclasses import dataclass, field
+import time
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .accounts_store import load_raw, public_view
 from .config import ConfigError, account_fingerprint, load_accounts
 from .tg import FatalAccountError
 from .worker import AccountWorker, Stats
@@ -39,8 +41,13 @@ class Runner:
 
         self.managed: dict[str, ManagedAccount] = {}
         self.shutdown = asyncio.Event()
+        # Будильник главного цикла: срабатывает на остановку и на запрос
+        # немедленной пересинхронизации (например, из веб-панели).
+        self._wake = asyncio.Event()
         self._accounts_mtime: float | None = None
         self._warned_empty = False
+        self._started_at = time.time()
+        self.panel: Any = None
 
     # --- основной цикл ---------------------------------------------------
 
@@ -51,6 +58,7 @@ class Runner:
         reload_interval = float(self.runtime["accounts_reload_seconds"])
         stats_interval = float(self.runtime["stats_interval_seconds"])
         stats_task = asyncio.create_task(self._stats_loop(stats_interval), name="stats")
+        await self._start_panel()
 
         try:
             while not self.shutdown.is_set():
@@ -58,22 +66,50 @@ class Runner:
                     await self._sync_accounts()
                 except ConfigError as exc:
                     log.error("accounts.json не прочитан: %s", exc)
+                self._wake.clear()
                 try:
-                    await asyncio.wait_for(self.shutdown.wait(), timeout=reload_interval)
+                    await asyncio.wait_for(self._wake.wait(), timeout=reload_interval)
                 except asyncio.TimeoutError:
-                    continue
+                    pass
         finally:
             stats_task.cancel()
+            if self.panel is not None:
+                await self.panel.stop()
             await self._stop_all()
             log.info("остановлено")
+
+    async def _start_panel(self) -> None:
+        """Поднимает веб-панель, если она включена в конфиге."""
+        if not self.config.get("web", {}).get("enabled"):
+            return
+        from .web.server import WebPanel
+
+        panel = WebPanel(self.config, self)
+        try:
+            await panel.start()
+        except ConfigError as exc:
+            log.error("веб-панель не запущена: %s", exc)
+            return
+        except OSError as exc:
+            log.error("веб-панель не запущена: %s", exc)
+            return
+        self.panel = panel
+
+    def request_sync(self) -> None:
+        """Просит главный цикл пересинхронизировать аккаунты прямо сейчас."""
+        self._wake.set()
 
     def _install_signal_handlers(self) -> None:
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             try:
-                loop.add_signal_handler(sig, self.shutdown.set)
+                loop.add_signal_handler(sig, self._request_shutdown)
             except (NotImplementedError, RuntimeError):
                 pass
+
+    def _request_shutdown(self) -> None:
+        self.shutdown.set()
+        self._wake.set()
 
     # --- синхронизация состава аккаунтов ---------------------------------
 
@@ -207,3 +243,52 @@ class Runner:
                 state = "FATAL" if managed.fatal else "ok"
                 log.info("[%s] %s | %s", name, state, stats.summary())
             log.info("[ИТОГО %d акк.] %s", len(self.managed), total.summary())
+
+    # --- состояние для веб-панели -----------------------------------------
+
+    def snapshot(self) -> dict[str, Any]:
+        """Аккаунты из файла + живое состояние воркеров, без секретов."""
+        try:
+            entries = load_raw(self.accounts_file)["accounts"]
+        except ConfigError as exc:
+            entries = []
+            log.warning("снимок состояния: %s", exc)
+
+        accounts: list[dict[str, Any]] = []
+        totals = Stats()
+        for entry in entries:
+            view = public_view(entry)
+            managed = self.managed.get(view["name"])
+            if not view["enabled"]:
+                state = "disabled"
+            elif managed is None:
+                state = "starting"
+            elif managed.fatal:
+                state = "fatal"
+            else:
+                state = "running"
+
+            stats = managed.stats if managed else Stats()
+            view["state"] = state
+            view["stats"] = asdict(stats)
+            accounts.append(view)
+
+            totals.reacted += stats.reacted
+            totals.skipped += stats.skipped
+            totals.dropped += stats.dropped
+            totals.failed += stats.failed
+            totals.flood_waits += stats.flood_waits
+            totals.flood_seconds += stats.flood_seconds
+            totals.blocked_chats += stats.blocked_chats
+
+        return {
+            "accounts": accounts,
+            "totals": asdict(totals),
+            "reaction": self.config["reaction"]["emoji"],
+            "limits": {
+                "per_account_per_minute": self.config["limits"]["per_account_per_minute"],
+                "min_interval_seconds": self.config["limits"]["min_interval_seconds"],
+            },
+            "uptime_seconds": int(time.time() - self._started_at),
+            "reload_seconds": self.runtime["accounts_reload_seconds"],
+        }

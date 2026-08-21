@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from telethon import TelegramClient, errors
 from telethon.sessions import StringSession
@@ -64,6 +65,24 @@ AUTH_ERRORS: tuple[type[BaseException], ...] = (
 )
 
 _SEND_REACTION_PARAMS = set(inspect.signature(SendReactionRequest.__init__).parameters)
+
+
+def parse_proxy_url(value: str | None) -> dict[str, Any] | None:
+    """socks5://user:pass@host:1080 -> словарь прокси. ValueError, если не разобрали."""
+    if not value or not value.strip():
+        return None
+    parsed = urlparse(value.strip())
+    if parsed.scheme not in ("socks5", "socks4", "http") or not parsed.hostname or not parsed.port:
+        raise ValueError("нужен вид socks5://[user:pass@]host:port")
+    proxy: dict[str, Any] = {
+        "type": parsed.scheme,
+        "host": parsed.hostname,
+        "port": parsed.port,
+    }
+    if parsed.username:
+        proxy["username"] = parsed.username
+        proxy["password"] = parsed.password or ""
+    return proxy
 
 
 def build_proxy(proxy: dict[str, Any] | None) -> Any:

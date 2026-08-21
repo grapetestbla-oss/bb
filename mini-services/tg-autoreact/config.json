@@ -1,7 +1,11 @@
 {
   "reaction": {
     "emoji": "❤️‍🔥",
-    "fallback_emojis": ["❤‍🔥", "🔥", "❤️"],
+    "fallback_emojis": [
+      "❤‍🔥",
+      "🔥",
+      "❤️"
+    ],
     "big": false,
     "add_to_recent": false
   },
@@ -33,11 +37,26 @@
     "accounts_file": "accounts.json",
     "accounts_reload_seconds": 30,
     "stats_interval_seconds": 300,
-    "restart_backoff_seconds": [5, 15, 60, 300],
+    "restart_backoff_seconds": [
+      5,
+      15,
+      60,
+      300
+    ],
     "chat_error_cooldown_seconds": 1800,
     "device_model": "Desktop",
     "system_version": "Linux",
     "app_version": "1.0"
+  },
+  "web": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 8088,
+    "password_hash": "",
+    "password": "",
+    "session_ttl_seconds": 86400,
+    "login_ttl_seconds": 600,
+    "secure_cookie": false
   },
   "logging": {
     "level": "INFO",

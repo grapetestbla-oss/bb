@@ -63,6 +63,20 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "system_version": "Linux",
         "app_version": "1.0",
     },
+    "web": {
+        # Веб-панель для добавления и управления аккаунтами.
+        "enabled": False,
+        "host": "127.0.0.1",
+        "port": 8088,
+        # Пароль панели: либо хеш (python -m tg_autoreact.webpass), либо
+        # открытый пароль, либо переменная окружения TG_AUTOREACT_WEB_PASSWORD.
+        "password_hash": "",
+        "password": "",
+        "session_ttl_seconds": 86400,
+        "login_ttl_seconds": 600,
+        # True, если панель отдаётся по HTTPS — тогда кука уходит только по TLS.
+        "secure_cookie": False,
+    },
     "logging": {
         "level": "INFO",
         "file": "logs/autoreact.log",
@@ -129,6 +143,12 @@ def _validate_config(config: dict[str, Any]) -> None:
     backoff = config["runtime"]["restart_backoff_seconds"]
     if not isinstance(backoff, list) or not backoff:
         raise ConfigError("runtime.restart_backoff_seconds должен быть непустым списком")
+
+    web = config["web"]
+    if web.get("enabled"):
+        port = int(web.get("port", 0))
+        if not 1 <= port <= 65535:
+            raise ConfigError("web.port вне диапазона 1..65535")
 
 
 def account_fingerprint(account: dict[str, Any]) -> str:
