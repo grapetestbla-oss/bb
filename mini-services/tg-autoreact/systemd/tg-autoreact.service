@@ -1,0 +1,27 @@
+[Unit]
+Description=Telegram auto-reaction service (multi-account)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tgreact
+Group=tgreact
+WorkingDirectory=/opt/tg-autoreact
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/tg-autoreact/.venv/bin/python -m tg_autoreact --config /opt/tg-autoreact/config.json
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Базовое ограничение прав процесса
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/tg-autoreact
+
+[Install]
+WantedBy=multi-user.target

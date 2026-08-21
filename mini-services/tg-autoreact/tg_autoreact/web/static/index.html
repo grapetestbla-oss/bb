@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>tg-autoreact — панель</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❤️‍🔥</text></svg>">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<section id="login-screen" class="screen hidden">
+  <form id="login-form" class="card narrow">
+    <h1>❤️‍🔥 tg-autoreact</h1>
+    <p class="muted">Панель управления аккаунтами</p>
+    <label>Пароль панели
+      <input type="password" id="panel-password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="primary">Войти</button>
+    <p class="error" id="login-error"></p>
+  </form>
+</section>
+
+<main id="app-screen" class="screen hidden">
+  <header class="topbar">
+    <div>
+      <h1><span id="reaction-emoji">❤️‍🔥</span> tg-autoreact</h1>
+      <span class="muted" id="uptime"></span>
+    </div>
+    <button id="logout" class="ghost">Выйти</button>
+  </header>
+
+  <section class="totals" id="totals"></section>
+
+  <section class="card">
+    <h2>Аккаунты</h2>
+    <div class="table-wrap">
+      <table id="accounts">
+        <thead>
+          <tr>
+            <th>Имя</th><th>Тип</th><th>Статус</th><th>Реакций</th>
+            <th>Пропущено</th><th>Ошибок</th><th>FloodWait</th><th>Прокси</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted" id="accounts-empty">Аккаунтов пока нет — добавьте первый ниже.</p>
+  </section>
+
+  <section class="card">
+    <h2>Добавить аккаунт</h2>
+    <div class="tabs">
+      <button class="tab active" data-tab="user">Пользователь (по телефону)</button>
+      <button class="tab" data-tab="bot">Бот (по токену)</button>
+    </div>
+
+    <form id="user-form" class="tab-panel">
+      <div class="grid">
+        <label>Имя в панели<input id="u-name" placeholder="acc1" required></label>
+        <label>api_id<input id="u-api-id" inputmode="numeric" placeholder="123456" required></label>
+        <label>api_hash<input id="u-api-hash" placeholder="0123456789abcdef0123456789abcdef" required></label>
+        <label>Телефон<input id="u-phone" placeholder="+79990000000" required></label>
+        <label class="wide">Прокси (необязательно)<input id="u-proxy" placeholder="socks5://user:pass@host:1080"></label>
+      </div>
+      <p class="muted">api_id и api_hash берутся на <a href="https://my.telegram.org/apps" target="_blank" rel="noreferrer noopener">my.telegram.org/apps</a>.</p>
+      <button type="submit" class="primary" id="u-submit">Отправить код</button>
+    </form>
+
+    <form id="code-form" class="tab-panel hidden">
+      <p>Telegram отправил код на <b id="code-phone"></b>. Введите его.</p>
+      <label>Код<input id="u-code" inputmode="numeric" autocomplete="one-time-code" required></label>
+      <div class="row">
+        <button type="submit" class="primary">Подтвердить</button>
+        <button type="button" class="ghost" id="code-cancel">Отмена</button>
+      </div>
+    </form>
+
+    <form id="password-form" class="tab-panel hidden">
+      <p>На аккаунте включена двухфакторная аутентификация.</p>
+      <label>Облачный пароль<input type="password" id="u-2fa" autocomplete="off" required></label>
+      <div class="row">
+        <button type="submit" class="primary">Войти</button>
+        <button type="button" class="ghost" id="password-cancel">Отмена</button>
+      </div>
+    </form>
+
+    <form id="bot-form" class="tab-panel hidden">
+      <div class="grid">
+        <label>Имя в панели<input id="b-name" placeholder="bot1" required></label>
+        <label>api_id<input id="b-api-id" inputmode="numeric" placeholder="123456" required></label>
+        <label>api_hash<input id="b-api-hash" placeholder="0123456789abcdef0123456789abcdef" required></label>
+        <label>Токен бота<input id="b-token" placeholder="123456:AA..." required></label>
+        <label class="wide">Прокси (необязательно)<input id="b-proxy" placeholder="socks5://user:pass@host:1080"></label>
+      </div>
+      <p class="muted">Бот видит сообщения только в тех чатах, куда добавлен, и с выключенным privacy mode.</p>
+      <button type="submit" class="primary">Добавить бота</button>
+    </form>
+
+    <p class="error" id="add-error"></p>
+  </section>
+
+  <p class="muted footnote">
+    Сессии аккаунтов хранятся в <code>accounts.json</code> на сервере и никогда не отдаются в браузер.
+    Изменения применяются в течение секунды — перезапуск сервиса не нужен.
+  </p>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

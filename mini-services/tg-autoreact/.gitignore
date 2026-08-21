@@ -1,0 +1,7 @@
+accounts.json
+*.session
+*.session-journal
+logs/
+.venv/
+__pycache__/
+*.pyc
