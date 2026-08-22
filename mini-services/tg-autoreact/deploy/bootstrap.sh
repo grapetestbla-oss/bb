@@ -88,8 +88,15 @@ systemctl restart tg-autoreact
 
 if [ "${SKIP_CADDY:-0}" != "1" ]; then
   say "Caddy для $DOMAIN"
-  mkdir -p /etc/caddy /var/log/caddy
-  chown -R caddy:caddy /var/log/caddy 2>/dev/null || true
+  mkdir -p /etc/caddy
+  # Каталог логов заводит systemd, а не мы: LogsDirectory создаёт /var/log/caddy
+  # с владельцем сервиса и держит его доступным на запись даже при
+  # ProtectSystem=strict в юните Caddy. Раньше каталог создавался вручную, а
+  # ошибка chown глушилась, и Caddy падал на старте с "permission denied"
+  # при открытии файла лога.
+  mkdir -p /etc/systemd/system/caddy.service.d
+  printf '[Service]\nLogsDirectory=caddy\n' > /etc/systemd/system/caddy.service.d/logdir.conf
+  systemctl daemon-reload
   DOMAIN="$DOMAIN" WEB_PORT="$WEB_PORT" \
     sed -e "s|\${DOMAIN}|$DOMAIN|g" -e "s|\${WEB_PORT}|$WEB_PORT|g" \
     "$SRC/deploy/Caddyfile.template" > /etc/caddy/Caddyfile
