@@ -101,6 +101,11 @@ if [ "${SKIP_CADDY:-0}" != "1" ]; then
     sed -e "s|\${DOMAIN}|$DOMAIN|g" -e "s|\${WEB_PORT}|$WEB_PORT|g" \
     "$SRC/deploy/Caddyfile.template" > /etc/caddy/Caddyfile
   caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  # validate не только читает конфиг, но и провизионирует его: файловый логгер
+  # при этом открывается, и файл лога создаётся от root. Caddy работает под
+  # пользователем caddy и потом не может писать в собственный лог — сервис
+  # падает с "permission denied". Возвращаем файлы владельцу сервиса.
+  chown -R caddy:caddy /var/log/caddy
   systemctl enable --now caddy
   systemctl reload caddy || systemctl restart caddy
 fi
