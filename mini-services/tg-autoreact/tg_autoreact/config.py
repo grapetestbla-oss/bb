@@ -51,6 +51,21 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dialogs_limit": 50,
         "messages_per_dialog": 20,
     },
+    "join": {
+        # Вступление строго по вашему списку: сервис не ищет чаты сам и не
+        # вступает никуда по своей инициативе.
+        "targets": [],
+        # Чаты меньше этого размера пропускаются.
+        "min_members": 1000,
+        # Предел вступлений за один проход — массовые вступления Telegram
+        # считает спамом и банит за них.
+        "max_joins_per_run": 10,
+        # Пауза между вступлениями.
+        "delay_min_seconds": 30.0,
+        "delay_max_seconds": 90.0,
+        # FloodWait длиннее этого прерывает проход, а не пережидается.
+        "max_flood_wait_seconds": 300.0,
+    },
     "runtime": {
         "accounts_file": "accounts.json",
         # Как часто перечитывать accounts.json (добавление аккаунтов на лету).
@@ -139,6 +154,15 @@ def _validate_config(config: dict[str, Any]) -> None:
             raise ConfigError(f"limits.{key} не может быть отрицательным")
     if limits["max_queue_size"] < 1:
         raise ConfigError("limits.max_queue_size должен быть >= 1")
+
+    join = config["join"]
+    if not isinstance(join.get("targets"), list):
+        raise ConfigError("join.targets должен быть списком ссылок на чаты")
+    if join["delay_min_seconds"] > join["delay_max_seconds"]:
+        raise ConfigError("join.delay_min_seconds больше join.delay_max_seconds")
+    for key in ("min_members", "max_joins_per_run", "delay_min_seconds", "max_flood_wait_seconds"):
+        if join[key] < 0:
+            raise ConfigError(f"join.{key} не может быть отрицательным")
 
     backoff = config["runtime"]["restart_backoff_seconds"]
     if not isinstance(backoff, list) or not backoff:

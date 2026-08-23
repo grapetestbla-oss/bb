@@ -33,6 +33,14 @@
     "dialogs_limit": 50,
     "messages_per_dialog": 20
   },
+  "join": {
+    "targets": [],
+    "min_members": 1000,
+    "max_joins_per_run": 10,
+    "delay_min_seconds": 30.0,
+    "delay_max_seconds": 90.0,
+    "max_flood_wait_seconds": 300.0
+  },
   "runtime": {
     "accounts_file": "accounts.json",
     "accounts_reload_seconds": 30,
