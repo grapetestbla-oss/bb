@@ -1,0 +1,31 @@
+[Unit]
+Description=Telegram bot for media partner applications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=partnerbot
+Group=partnerbot
+WorkingDirectory=/opt/partner-bot
+Environment=PYTHONUNBUFFERED=1
+# Пакет лежит рядом и в venv не устанавливается — задаём путь явно,
+# чтобы -m находил его независимо от рабочего каталога.
+Environment=PYTHONPATH=/opt/partner-bot
+# Токен держим отдельным файлом с правами 600, а не в config.json.
+EnvironmentFile=/etc/partner-bot.env
+ExecStart=/opt/partner-bot/.venv/bin/python -m partner_bot --config /opt/partner-bot/config.json
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/partner-bot
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+{
+  "bot": {
+    "token": "",
+    "admin_chat_id": 0,
+    "admin_user_ids": []
+  },
+  "application": {
+    "min_subscribers": 1000,
+    "reject_cooldown_hours": 24,
+    "max_field_length": 400,
+    "allow_resubmit_after_approve": false
+  },
+  "storage": {
+    "path": "applications.db"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/partner-bot.log",
+    "max_bytes": 10485760,
+    "backup_count": 5
+  }
+}
