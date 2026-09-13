@@ -8,145 +8,132 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  username      String   @unique
-  password      String
-  role          String   @default("client") // client, booster, moderator, admin
-  avatar        String?
-  balance       Float    @default(0)
-  rating        Float    @default(0)
-  reviewsCount  Int      @default(0)
-  verified      Boolean  @default(false)
-  blocked       Boolean  @default(false)
-  achievements  String   @default("[]") // JSON array of achievement IDs
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(cuid())
+  login     String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("user") // user | admin
+  contact   String? // tg / discord
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  services      Service[]  @relation("BoosterServices")
-  orders        Order[]    @relation("ClientOrders")
-  boosterOrders Order[]    @relation("BoosterOrders")
-  reviewsGiven  Review[]   @relation("ReviewAuthor")
-  reviewsReceived Review[] @relation("ReviewTarget")
-  sentMessages  ChatMessage[] @relation("MessageSender")
-  notifications Notification[] @relation("UserNotifications")
-  moderatorLogs ModeratorLog[] @relation("ModeratorActions")
+  orders           Order[]           @relation("UserOrders")
+  trainingRequests TrainingRequest[] @relation("UserTrainings")
+  takenTrainings   TrainingRequest[] @relation("TakenTrainings")
+  notifications    Notification[]    @relation("UserNotifications")
 }
 
-model Category {
+model Track {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  country   String
+  flag      String   @default("🏁")
+  pack      String   @default("f125") // f125 | s2026 | classic
+  round     Int      @default(0)
+  laps      Int      @default(0)
+  lengthKm  Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  setups Setup[]
+}
+
+model Setup {
   id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  icon        String?
+  trackId     String
+  title       String
+  type        String   @default("race") // qualifying | race | wet | timetrial
+  pack        String   @default("f125") // f125 | s2026
+  price       Float    @default(0)
+  oldPrice    Float?
+  description String   @default("")
+  // Параметры сетапа (выдаются после оплаты)
+  data        String   @default("{}") // JSON с настройками
+  previewData String   @default("{}") // JSON: что видно до покупки
+  sales       Int      @default(0)
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  track  Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  orders Order[]
+}
+
+model TrainingPlan {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  price       Float    @default(0)
+  duration    String   @default("60 минут")
+  features    String   @default("[]") // JSON массив строк
+  active      Boolean  @default(true)
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  services    Service[]
-}
-
-model Service {
-  id               String   @id @default(cuid())
-  title            String
-  description      String
-  price            Float
-  image            String?
-  categoryId       String
-  boosterId        String
-  estimatedTime    String   @default("1-3 дня")
-  features         String   @default("[]") // JSON array of feature strings
-  requirements     String   @default("[]") // JSON array of requirement strings
-  active           Boolean  @default(true)
-  moderationStatus String   @default("approved") // pending, approved, rejected
-  rejectionReason  String?
-  ordersCount      Int      @default(0)
-  rating           Float    @default(0)
-  reviewsCount     Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  category         Category @relation(fields: [categoryId], references: [id])
-  booster          User     @relation("BoosterServices", fields: [boosterId], references: [id])
-  orders           Order[]
-  reviews          Review[]
+  orders Order[]
 }
 
 model Order {
-  id            String   @id @default(cuid())
-  serviceId     String
-  clientId      String
-  boosterId     String?
-  status        String   @default("pending") // pending, in_progress, completed, disputed, cancelled, refunded
-  progress      Int      @default(0) // 0-100 percentage
-  price         Float
-  escrowLocked  Boolean  @default(true)
-  clientNotes   String?
-  boosterNotes  String?
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  kind       String   @default("setup") // setup | training
+  setupId    String?
+  planId     String?
+  amount     Float    @default(0)
+  status     String   @default("pending") // pending | paid | cancelled
+  provider   String? // freekassa | platega | manual
+  externalId String?
+  payUrl     String?
+  createdAt  DateTime @default(now())
+  paidAt     DateTime?
+  updatedAt  DateTime @updatedAt
 
-  service       Service  @relation(fields: [serviceId], references: [id])
-  client        User     @relation("ClientOrders", fields: [clientId], references: [id])
-  booster       User?    @relation("BoosterOrders", fields: [boosterId], references: [id])
-  messages      ChatMessage[]
-  reviews       Review[]
+  user     User             @relation("UserOrders", fields: [userId], references: [id], onDelete: Cascade)
+  setup    Setup?           @relation(fields: [setupId], references: [id])
+  plan     TrainingPlan?    @relation(fields: [planId], references: [id])
+  training TrainingRequest?
 }
 
-model Review {
+model TrainingRequest {
   id        String   @id @default(cuid())
-  orderId   String
-  serviceId String
-  authorId  String
-  targetId  String
-  rating    Int      // 1-5
-  comment   String
+  orderId   String   @unique
+  userId    String
+  contactType String @default("telegram") // telegram | discord
+  contact   String
+  platform  String   @default("pc") // pc | ps | xbox
+  device    String   @default("wheel") // wheel | gamepad | keyboard
+  level     String   @default("") // уровень игрока
+  comment   String   @default("")
+  status    String   @default("new") // new | taken | done | cancelled
+  takenById String?
+  takenAt   DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  order     Order    @relation(fields: [orderId], references: [id])
-  service   Service  @relation(fields: [serviceId], references: [id])
-  author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
-  target    User     @relation("ReviewTarget", fields: [targetId], references: [id])
-}
-
-model ChatMessage {
-  id        String   @id @default(cuid())
-  orderId   String
-  senderId  String
-  content   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  order     Order    @relation(fields: [orderId], references: [id])
-  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user    User  @relation("UserTrainings", fields: [userId], references: [id], onDelete: Cascade)
+  takenBy User? @relation("TakenTrainings", fields: [takenById], references: [id])
 }
 
 model Notification {
   id        String   @id @default(cuid())
-  userId    String
+  userId    String? // null => уведомление для панели администратора
+  type      String   @default("info") // info | order | training | payment
   title     String
-  message   String
-  type      String   @default("info") // info, success, warning, error
+  body      String   @default("")
+  link      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+  user User? @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model ModeratorLog {
-  id          String   @id @default(cuid())
-  moderatorId String
-  action      String
-  target      String   // what was affected
-  details     String?
-  createdAt   DateTime @default(now())
-
-  moderator   User     @relation("ModeratorActions", fields: [moderatorId], references: [id])
-}
-
-model PlatformSettings {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  updatedAt   DateTime @updatedAt
+model Setting {
+  key       String   @id
+  value     String   @default("{}")
+  updatedAt DateTime @updatedAt
 }

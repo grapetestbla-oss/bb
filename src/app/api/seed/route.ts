@@ -1,745 +1,183 @@
 import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/auth'
+import { handleError, ok } from '@/lib/api'
+import { ALL_TRACKS, EMPTY_SETUP, type SetupData } from '@/lib/f1-data'
+import { DEFAULT_PAYMENTS, DEFAULT_SITE, setSetting } from '@/lib/settings'
+
+export const dynamic = 'force-dynamic'
+
+const ADMIN_LOGIN = 'fantasticqueboy'
+const ADMIN_PASSWORD = 'fantasticqueboy'
+
+/** Псевдослучайное, но детерминированное значение по slug трассы. */
+function seededValue(slug: string, salt: number, min: number, max: number, step = 1) {
+  let hash = salt
+  for (let i = 0; i < slug.length; i += 1) hash = (hash * 31 + slug.charCodeAt(i)) % 100000
+  const steps = Math.floor((max - min) / step) + 1
+  const value = min + (hash % steps) * step
+  return Number(value.toFixed(2))
+}
+
+function buildSetup(slug: string, type: 'qualifying' | 'race' | 'wet'): SetupData {
+  const downforceBias = type === 'wet' ? 10 : type === 'race' ? 3 : 0
+  return {
+    ...EMPTY_SETUP,
+    frontWing: Math.min(50, seededValue(slug, 1, 8, 42) + downforceBias),
+    rearWing: Math.min(50, seededValue(slug, 2, 6, 40) + downforceBias),
+    diffOnThrottle: seededValue(slug, 3, 50, 85),
+    diffOffThrottle: seededValue(slug, 4, 45, 75),
+    engineBraking: seededValue(slug, 5, 30, 80),
+    frontCamber: seededValue(slug, 6, -3.5, -2.5, 0.1),
+    rearCamber: seededValue(slug, 7, -2.0, -1.0, 0.1),
+    frontToe: seededValue(slug, 8, 0.0, 0.2, 0.01),
+    rearToe: seededValue(slug, 9, 0.1, 0.4, 0.01),
+    frontSuspension: seededValue(slug, 10, 1, 41),
+    rearSuspension: seededValue(slug, 11, 1, 41),
+    frontAntiRoll: seededValue(slug, 12, 1, 21),
+    rearAntiRoll: seededValue(slug, 13, 1, 21),
+    frontRideHeight: seededValue(slug, 14, 20, 40),
+    rearRideHeight: seededValue(slug, 15, 50, 80),
+    brakePressure: type === 'wet' ? 92 : seededValue(slug, 16, 95, 100),
+    brakeBias: seededValue(slug, 17, 52, 62),
+    frontRightTyre: type === 'wet' ? 24.5 : seededValue(slug, 18, 22.5, 26.0, 0.5),
+    frontLeftTyre: type === 'wet' ? 24.5 : seededValue(slug, 18, 22.5, 26.0, 0.5),
+    rearRightTyre: type === 'wet' ? 22.5 : seededValue(slug, 19, 20.5, 24.0, 0.5),
+    rearLeftTyre: type === 'wet' ? 22.5 : seededValue(slug, 19, 20.5, 24.0, 0.5),
+  }
+}
+
+const TEMPLATES = [
+  {
+    type: 'qualifying' as const,
+    title: 'Квалификационный сетап',
+    price: 149,
+    description:
+      'Максимум скорости на один круг: агрессивная аэродинамика, острый перед и настройки под мягкую резину. Идеально для борьбы за поул.',
+  },
+  {
+    type: 'race' as const,
+    title: 'Гоночный сетап',
+    price: 199,
+    description:
+      'Баланс темпа и износа резины на длинной дистанции. Стабильная машина на торможениях и предсказуемая на выходе из поворотов.',
+  },
+  {
+    type: 'wet' as const,
+    title: 'Дождевой сетап',
+    price: 179,
+    description:
+      'Повышенная прижимная сила, мягкая подвеска и сниженное давление тормозов — контроль на мокрой трассе и в смешанных условиях.',
+  },
+]
 
 export async function POST() {
   try {
-    // Delete all existing data in reverse dependency order
-    await db.moderatorLog.deleteMany()
-    await db.notification.deleteMany()
-    await db.chatMessage.deleteMany()
-    await db.review.deleteMany()
-    await db.order.deleteMany()
-    await db.service.deleteMany()
-    await db.category.deleteMany()
-    await db.platformSettings.deleteMany()
-    await db.user.deleteMany()
+    // 1. Администратор
+    const adminPassword = await hashPassword(ADMIN_PASSWORD)
+    const admin = await db.user.upsert({
+      where: { login: ADMIN_LOGIN },
+      update: { role: 'admin' },
+      create: {
+        login: ADMIN_LOGIN,
+        email: 'fantasticqueboy@apexsetups.gg',
+        password: adminPassword,
+        role: 'admin',
+        contact: '@fantasticqueboy',
+      },
+    })
 
-    // Hash all passwords with bcrypt
-    const salt = await bcrypt.genSalt(12)
-    const hashPassword = (pw: string) => bcrypt.hash(pw, salt)
+    // 2. Трассы
+    for (const track of ALL_TRACKS) {
+      await db.track.upsert({
+        where: { slug: track.slug },
+        update: { ...track },
+        create: { ...track },
+      })
+    }
 
-    const [
-      adminPw,
-      modPw,
-      booster1Pw,
-      booster2Pw,
-      client1Pw,
-      client2Pw,
-    ] = await Promise.all([
-      hashPassword('denA34934'),
-      hashPassword('mod12345'),
-      hashPassword('123456'),
-      hashPassword('123456'),
-      hashPassword('123456'),
-      hashPassword('123456'),
-    ])
-
-    // ─── Create Categories ─────────────────────────────────────────────
-    const [trophyCat, brawlerCat, questCat, rankCat] = await Promise.all([
-      db.category.create({
-        data: { name: 'Трофеи', slug: 'trophies', icon: '🏆', order: 1 },
-      }),
-      db.category.create({
-        data: { name: 'Бойцы', slug: 'brawlers', icon: '⚔️', order: 2 },
-      }),
-      db.category.create({
-        data: { name: 'Квесты', slug: 'quests', icon: '📋', order: 3 },
-      }),
-      db.category.create({
-        data: { name: 'Ранги', slug: 'ranks', icon: '👑', order: 4 },
-      }),
-    ])
-
-    // ─── Create Users ──────────────────────────────────────────────────
-    const [admin, moderator, booster1, booster2, client1, client2] =
-      await Promise.all([
-        db.user.create({
+    // 3. Сетапы для каждой трассы
+    const tracks = await db.track.findMany()
+    let created = 0
+    for (const track of tracks) {
+      for (const template of TEMPLATES) {
+        const exists = await db.setup.findFirst({
+          where: { trackId: track.id, type: template.type },
+        })
+        if (exists) continue
+        const data = buildSetup(track.slug, template.type)
+        await db.setup.create({
           data: {
-            email: 'admin@brawlboost.ru',
-            username: 'denA34934',
-            password: adminPw,
-            role: 'admin',
-            avatar: null,
-            balance: 0,
-            rating: 5,
-            reviewsCount: 0,
-            verified: true,
-            blocked: false,
-            achievements: JSON.stringify(['admin_badge']),
+            trackId: track.id,
+            title: `${template.title} — ${track.name}`,
+            type: template.type,
+            pack: track.pack === 's2026' ? 's2026' : 'f125',
+            price: track.pack === 's2026' ? template.price + 50 : template.price,
+            description: template.description,
+            data: JSON.stringify(data),
+            previewData: JSON.stringify({
+              frontWing: data.frontWing,
+              rearWing: data.rearWing,
+              brakeBias: data.brakeBias,
+            }),
+            featured: track.round <= 3 && template.type === 'race',
           },
-        }),
-        db.user.create({
-          data: {
-            email: 'mod@brawlboost.ru',
-            username: 'ModeratorPro',
-            password: modPw,
-            role: 'moderator',
-            avatar: null,
-            balance: 0,
-            rating: 4.5,
-            reviewsCount: 2,
-            verified: true,
-            blocked: false,
-            achievements: JSON.stringify(['moderator_badge', 'trusted']),
-          },
-        }),
-        db.user.create({
-          data: {
-            email: 'booster1@brawlboost.ru',
-            username: 'BoosterMax',
-            password: booster1Pw,
-            role: 'booster',
-            avatar: null,
-            balance: 15000,
-            rating: 4.8,
-            reviewsCount: 24,
-            verified: true,
-            blocked: false,
-            achievements: JSON.stringify([
-              'top_booster',
-              '100_orders',
-              'fast_completion',
-            ]),
-          },
-        }),
-        db.user.create({
-          data: {
-            email: 'booster2@brawlboost.ru',
-            username: 'ProBooster',
-            password: booster2Pw,
-            role: 'booster',
-            avatar: null,
-            balance: 8500,
-            rating: 4.5,
-            reviewsCount: 15,
-            verified: true,
-            blocked: false,
-            achievements: JSON.stringify(['trusted', '50_orders']),
-          },
-        }),
-        db.user.create({
-          data: {
-            email: 'client1@brawlboost.ru',
-            username: 'BrawlFan2024',
-            password: client1Pw,
-            role: 'client',
-            avatar: null,
-            balance: 5000,
-            rating: 0,
-            reviewsCount: 0,
-            verified: false,
-            blocked: false,
-            achievements: JSON.stringify([]),
-          },
-        }),
-        db.user.create({
-          data: {
-            email: 'client2@brawlboost.ru',
-            username: 'GamerPro99',
-            password: client2Pw,
-            role: 'client',
-            avatar: null,
-            balance: 3000,
-            rating: 0,
-            reviewsCount: 0,
-            verified: true,
-            blocked: false,
-            achievements: JSON.stringify(['first_order']),
-          },
-        }),
-      ])
+        })
+        created += 1
+      }
+    }
 
-    // ─── Create Services ───────────────────────────────────────────────
-    const services = await Promise.all([
-      db.service.create({
-        data: {
-          title: 'Буст трофеев до 5000',
-          description:
-            'Быстрый и безопасный буст трофеев до 5000. Опытный бустер доведёт ваш аккаунт до нужного количества трофеев максимально быстро. Используем безопасные методы, без ботов и читов.',
-          price: 1200,
-          image: null,
-          categoryId: trophyCat.id,
-          boosterId: booster1.id,
-          estimatedTime: '2-4 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия возврата',
-            'Без ботов',
-            'Отчёты о прогрессе',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            'Минимум 500 трофеев',
-          ]),
-          active: true,
-          ordersCount: 47,
-          rating: 4.9,
-          reviewsCount: 12,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Буст трофеев до 10000',
-          description:
-            'Профессиональный буст трофеев до 10000. Наш лучший бустер доведёт ваш аккаунт до 10000 трофеев с гарантией качества. Подходит для опытных игроков, желающих попасть в топ.',
-          price: 2500,
-          image: null,
-          categoryId: trophyCat.id,
-          boosterId: booster1.id,
-          estimatedTime: '5-7 дней',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия возврата',
-            'Без ботов',
-            'Ежедневные отчёты',
-            'Приоритетная поддержка',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            'Минимум 3000 трофеев',
-            '15+ бойцов',
-          ]),
-          active: true,
-          ordersCount: 23,
-          rating: 4.7,
-          reviewsCount: 8,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Получение Леона',
-          description:
-            'Получите легендарного бойца Леона! Наш бустер откроет Леона через trophies или другие доступные способы. Леон — один из лучших assassins в игре.',
-          price: 800,
-          image: null,
-          categoryId: brawlerCat.id,
-          boosterId: booster1.id,
-          estimatedTime: '1-3 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия получения',
-            'Гарантия возврата',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            '3000+ трофеев',
-          ]),
-          active: true,
-          ordersCount: 35,
-          rating: 4.8,
-          reviewsCount: 10,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Получение Кроу',
-          description:
-            'Получите легендарного Кроу! Один из самых мобильных бойцов в Brawl Stars. Наш бустер обеспечит быстрое получение этого персонажа.',
-          price: 900,
-          image: null,
-          categoryId: brawlerCat.id,
-          boosterId: booster2.id,
-          estimatedTime: '1-3 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия получения',
-            'Гарантия возврата',
-            'Поддержка 24/7',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            '4000+ трофеев',
-          ]),
-          active: true,
-          ordersCount: 28,
-          rating: 4.6,
-          reviewsCount: 9,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Выполнение квестов сезона',
-          description:
-            'Полное выполнение всех квестов текущего сезона. Получите все награды сезона без лишних усилий! Подходит для игроков, у которых нет времени на ежедневное выполнение заданий.',
-          price: 600,
-          image: null,
-          categoryId: questCat.id,
-          boosterId: booster2.id,
-          estimatedTime: '3-5 дней',
-          features: JSON.stringify([
-            'Безопасно',
-            'Все квесты сезона',
-            'Гарантия возврата',
-            'Ежедневные отчёты',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            'Бравл Пасс (опционально)',
-          ]),
-          active: true,
-          ordersCount: 52,
-          rating: 4.5,
-          reviewsCount: 14,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Буст до Мастера',
-          description:
-            'Доведём ваш ранг до Мастера! Максимальный ранг в Brawl Stars с гарантией. Топовый бустер сыграет за вас в рейтинговых боях до достижения ранга Мастер.',
-          price: 3500,
-          image: null,
-          categoryId: rankCat.id,
-          boosterId: booster1.id,
-          estimatedTime: '7-14 дней',
-          features: JSON.stringify([
-            'Безопасно',
-            'Гарантия ранга Мастер',
-            'Гарантия возврата',
-            'Приоритетная поддержка',
-            'Ежедневные отчёты',
-            'Без ботов',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            '5000+ трофеев',
-            '20+ бойцов',
-            'Ранг минимум Алмаз',
-          ]),
-          active: true,
-          ordersCount: 15,
-          rating: 4.9,
-          reviewsCount: 6,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Прокачка бойца до 11 уровня',
-          description:
-            'Прокачаем любого бойца до 11 уровня с полным оснащением усилителями силы. Максимальная эффективность вашего любимого персонажа!',
-          price: 500,
-          image: null,
-          categoryId: brawlerCat.id,
-          boosterId: booster2.id,
-          estimatedTime: '1-2 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия результата',
-            'Гарантия возврата',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            'Боец минимум 7 уровня',
-          ]),
-          active: true,
-          ordersCount: 41,
-          rating: 4.4,
-          reviewsCount: 11,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Получение Сандры',
-          description:
-            'Получите хроматического бойца Сандр! Отличный боец для контроля поля боя. Наш бустер быстро добавит Сандру в вашу коллекцию.',
-          price: 750,
-          image: null,
-          categoryId: brawlerCat.id,
-          boosterId: booster1.id,
-          estimatedTime: '2-4 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Быстро',
-            'Гарантия получения',
-            'Гарантия возврата',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            '3500+ трофеев',
-          ]),
-          active: true,
-          ordersCount: 19,
-          rating: 4.3,
-          reviewsCount: 5,
-        },
-      }),
-      db.service.create({
-        data: {
-          title: 'Квесты Бравл Пасса',
-          description:
-            'Выполнение всех квестов Бравл Пасса! Получите максимальные награды из проходки без ежедневного гринда. Подходит для занятых игроков.',
-          price: 450,
-          image: null,
-          categoryId: questCat.id,
-          boosterId: booster2.id,
-          estimatedTime: '2-4 дня',
-          features: JSON.stringify([
-            'Безопасно',
-            'Все квесты Бравл Пасса',
-            'Гарантия возврата',
-            'Отчёты о прогрессе',
-          ]),
-          requirements: JSON.stringify([
-            'Доступ к аккаунту',
-            'Активный Бравл Пасс',
-          ]),
-          active: true,
-          ordersCount: 38,
-          rating: 4.6,
-          reviewsCount: 10,
-        },
-      }),
-    ])
-
-    // ─── Create Orders ─────────────────────────────────────────────────
-    const order1 = await db.order.create({
-      data: {
-        serviceId: services[0].id,
-        clientId: client1.id,
-        boosterId: booster1.id,
-        status: 'completed',
-        progress: 100,
-        price: 1200,
-        escrowLocked: false,
-        clientNotes: 'Хочу чтобы всё было максимально быстро',
-        boosterNotes: 'Выполнено за 2 дня',
-        completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    // 4. Программы обучения
+    const plans = [
+      {
+        title: 'Разбор пилотажа',
+        description: 'Смотрим вашу телеметрию и повторы, находим потери времени, даём чёткий план работы.',
+        price: 990,
+        duration: '60 минут',
+        features: ['Анализ телеметрии', 'Разбор траекторий', 'Домашнее задание', 'Запись сессии'],
+        order: 1,
       },
-    })
-
-    const order2 = await db.order.create({
-      data: {
-        serviceId: services[2].id,
-        clientId: client2.id,
-        boosterId: booster1.id,
-        status: 'in_progress',
-        progress: 65,
-        price: 800,
-        escrowLocked: true,
-        clientNotes: 'Очень хочу Леона, уже давно пытаюсь получить',
-        boosterNotes: 'В процессе, осталось немного',
+      {
+        title: 'Индивидуальная тренировка',
+        description: 'Живая сессия на выбранной трассе: торможения, работа с газом, управление резиной.',
+        price: 1490,
+        duration: '90 минут',
+        features: ['Онлайн-сессия', 'Работа над торможениями', 'Настройка сетапа под ваш стиль', 'Поддержка в чате 7 дней'],
+        order: 2,
       },
-    })
-
-    const order3 = await db.order.create({
-      data: {
-        serviceId: services[5].id,
-        clientId: client1.id,
-        boosterId: booster1.id,
-        status: 'in_progress',
-        progress: 30,
-        price: 3500,
-        escrowLocked: true,
-        clientNotes: 'Мой текущий ранг Алмаз 3',
-        boosterNotes: 'Начали, progressing steadily',
+      {
+        title: 'Курс «Гоночный инженер»',
+        description: 'Пять занятий: настройка машины, стратегия, старт, атака и защита позиции в онлайн-лигах.',
+        price: 5900,
+        duration: '5 занятий по 90 минут',
+        features: ['5 занятий', 'Персональные сетапы на любые трассы', 'Работа над стартами', 'Разбор лиговых гонок'],
+        order: 3,
       },
-    })
+    ]
+    for (const plan of plans) {
+      const exists = await db.trainingPlan.findFirst({ where: { title: plan.title } })
+      if (exists) continue
+      await db.trainingPlan.create({
+        data: { ...plan, features: JSON.stringify(plan.features) },
+      })
+    }
 
-    const order4 = await db.order.create({
-      data: {
-        serviceId: services[4].id,
-        clientId: client2.id,
-        boosterId: booster2.id,
-        status: 'pending',
-        progress: 0,
-        price: 600,
-        escrowLocked: true,
-        clientNotes: 'Нужно выполнить все квесты этого сезона',
-      },
-    })
+    // 5. Настройки по умолчанию
+    const hasPayments = await db.setting.findUnique({ where: { key: 'payments' } })
+    if (!hasPayments) await setSetting('payments', DEFAULT_PAYMENTS)
+    const hasSite = await db.setting.findUnique({ where: { key: 'site' } })
+    if (!hasSite) await setSetting('site', DEFAULT_SITE)
 
-    const order5 = await db.order.create({
-      data: {
-        serviceId: services[3].id,
-        clientId: client1.id,
-        boosterId: booster2.id,
-        status: 'disputed',
-        progress: 40,
-        price: 900,
-        escrowLocked: true,
-        clientNotes: 'Нужен Кроу ASAP',
-        boosterNotes: 'Была проблема с доступом к аккаунту',
-      },
-    })
-
-    const order6 = await db.order.create({
-      data: {
-        serviceId: services[6].id,
-        clientId: client2.id,
-        boosterId: booster2.id,
-        status: 'completed',
-        progress: 100,
-        price: 500,
-        escrowLocked: false,
-        clientNotes: 'Прокачайте Шелли до 11 уровня',
-        boosterNotes: 'Выполнено, бойца прокачан до 11 уровня',
-        completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      },
-    })
-
-    // ─── Create Reviews ────────────────────────────────────────────────
-    await Promise.all([
-      db.review.create({
-        data: {
-          orderId: order1.id,
-          serviceId: services[0].id,
-          authorId: client1.id,
-          targetId: booster1.id,
-          rating: 5,
-          comment:
-            'Отличный бустер! Всё сделал быстро и качественно. Трофеи набраны за 2 дня, как и обещал. Рекомендую!',
-        },
-      }),
-      db.review.create({
-        data: {
-          orderId: order6.id,
-          serviceId: services[6].id,
-          authorId: client2.id,
-          targetId: booster2.id,
-          rating: 4,
-          comment:
-            'Хороший бустер, бойца прокачали до 11 уровня. Немного задержали сроки, но результат отличный.',
-        },
-      }),
-      db.review.create({
-        data: {
-          orderId: order1.id,
-          serviceId: services[0].id,
-          authorId: client1.id,
-          targetId: booster1.id,
-          rating: 5,
-          comment:
-            'Второй заказ у этого бустера — снова всё на высшем уровне! Буду обращаться ещё.',
-        },
-      }),
-      db.review.create({
-        data: {
-          orderId: order6.id,
-          serviceId: services[6].id,
-          authorId: client2.id,
-          targetId: booster2.id,
-          rating: 5,
-          comment:
-            'Всё супер, Шелли теперь 11 уровня с полным набором усилителей!',
-        },
-      }),
-      db.review.create({
-        data: {
-          orderId: order1.id,
-          serviceId: services[0].id,
-          authorId: client1.id,
-          targetId: booster1.id,
-          rating: 4,
-          comment:
-            'Хороший сервис, но хотелось бы чуть больше отчётов о прогрессе. В целом доволен.',
-        },
-      }),
-    ])
-
-    // ─── Create Chat Messages ──────────────────────────────────────────
-    await Promise.all([
-      db.chatMessage.create({
-        data: {
-          orderId: order2.id,
-          senderId: client2.id,
-          content: 'Привет! Когда начнёте работать над получением Леона?',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order2.id,
-          senderId: booster1.id,
-          content:
-            'Привет! Уже начал работу, прогресс идёт хорошо. Осталось совсем немного!',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order2.id,
-          senderId: client2.id,
-          content: 'Отлично, спасибо! Буду ждать',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order3.id,
-          senderId: client1.id,
-          content: 'Как прогресс по бусту ранга?',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order3.id,
-          senderId: booster1.id,
-          content:
-            'Сейчас на 30%, идём по расписанию. Ранг потихоньку растёт.',
-          read: false,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order5.id,
-          senderId: client1.id,
-          content:
-            'Почему нет прогресса? Уже 3 дня прошло, а Кроу до сих пор нет!',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order5.id,
-          senderId: booster2.id,
-          content:
-            'Была проблема с доступом к аккаунту, сейчас всё исправлено. Продолжаю работу.',
-          read: true,
-        },
-      }),
-      db.chatMessage.create({
-        data: {
-          orderId: order5.id,
-          senderId: client1.id,
-          content: 'Открываю спор, слишком долго.',
-          read: false,
-        },
-      }),
-    ])
-
-    // ─── Create Notifications ──────────────────────────────────────────
-    await Promise.all([
-      db.notification.create({
-        data: {
-          userId: client1.id,
-          title: 'Заказ выполнен',
-          message: 'Ваш заказ "Буст трофеев до 5000" успешно выполнен!',
-          type: 'success',
-          read: true,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: client1.id,
-          title: 'Обновление заказа',
-          message: 'Прогресс заказа "Буст до Мастера" обновлён: 30%',
-          type: 'info',
-          read: false,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: client1.id,
-          title: 'Спор по заказу',
-          message:
-            'По вашему заказу "Получение Кроу" открыт спор. Модератор рассмотрит его в ближайшее время.',
-          type: 'warning',
-          read: false,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: client2.id,
-          title: 'Заказ в работе',
-          message: 'Бустер начал работу над заказом "Получение Леона"',
-          type: 'info',
-          read: false,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: client2.id,
-          title: 'Заказ выполнен',
-          message: 'Ваш заказ "Прокачка бойца до 11 уровня" выполнен!',
-          type: 'success',
-          read: true,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: client2.id,
-          title: 'Новый заказ',
-          message:
-            'Ваш заказ на "Выполнение квестов сезона" создан и ожидает бустера',
-          type: 'info',
-          read: false,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: booster1.id,
-          title: 'Новый заказ',
-          message:
-            'Поступил новый заказ на услугу "Буст до Мастера"',
-          type: 'info',
-          read: true,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: booster1.id,
-          title: 'Спор по заказу',
-          message: 'Открыт спор по заказу клиента BrawlFan2024',
-          type: 'warning',
-          read: false,
-        },
-      }),
-      db.notification.create({
-        data: {
-          userId: booster2.id,
-          title: 'Новый заказ',
-          message:
-            'Поступил новый заказ на услугу "Выполнение квестов сезона"',
-          type: 'info',
-          read: false,
-        },
-      }),
-    ])
-
-    // ─── Create Platform Settings ──────────────────────────────────────
-    await db.platformSettings.create({
-      data: {
-        key: 'commission_rate',
-        value: '0.15',
-      },
-    })
-    await db.platformSettings.create({
-      data: {
-        key: 'min_withdrawal',
-        value: '500',
-      },
-    })
-
-    return NextResponse.json({
-      message: 'База данных успешно заполнена демо-данными',
-      data: {
-        categories: 4,
-        users: 6,
-        services: services.length,
-        orders: 6,
-        reviews: 5,
-        chatMessages: 8,
-        notifications: 9,
-        adminCredentials: {
-          email: 'admin@brawlboost.ru',
-          username: 'denA34934',
-          password: 'denA34934',
-          role: 'admin',
-        },
-      },
+    return ok({
+      success: true,
+      admin: admin.login,
+      tracks: tracks.length,
+      setupsCreated: created,
     })
   } catch (error) {
-    console.error('Seed error:', error)
-    return NextResponse.json(
-      { error: 'Ошибка при заполнении базы данных', details: String(error) },
-      { status: 500 }
-    )
+    return handleError(error)
   }
+}
+
+export async function GET() {
+  return POST()
 }
