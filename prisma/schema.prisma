@@ -1,3 +1,5 @@
+// F1 Icons League — схема базы данных
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,146 +9,194 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Пользователь лиги. role: USER | ADMIN | SUPERADMIN
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  username      String   @unique
-  password      String
-  role          String   @default("client") // client, booster, moderator, admin
-  avatar        String?
-  balance       Float    @default(0)
-  rating        Float    @default(0)
-  reviewsCount  Int      @default(0)
-  verified      Boolean  @default(false)
-  blocked       Boolean  @default(false)
-  achievements  String   @default("[]") // JSON array of achievement IDs
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  services      Service[]  @relation("BoosterServices")
-  orders        Order[]    @relation("ClientOrders")
-  boosterOrders Order[]    @relation("BoosterOrders")
-  reviewsGiven  Review[]   @relation("ReviewAuthor")
-  reviewsReceived Review[] @relation("ReviewTarget")
-  sentMessages  ChatMessage[] @relation("MessageSender")
-  notifications Notification[] @relation("UserNotifications")
-  moderatorLogs ModeratorLog[] @relation("ModeratorActions")
-}
-
-model Category {
   id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  icon        String?
-  order       Int      @default(0)
+  username    String   @unique
+  email       String?  @unique
+  password    String
+  displayName String
+  role        String   @default("USER")
+  avatar      String?
+  gameNick    String?
+  platform    String?
+  country     String?
+  bio         String?
+  blocked     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  services    Service[]
+  sessions        Session[]
+  applications    Application[] @relation("ApplicationAuthor")
+  reviewedApps    Application[] @relation("ApplicationReviewer")
+  entries         SeasonEntry[]
+  news            News[]        @relation("NewsAuthor")
 }
 
-model Service {
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Сезон лиги. status: UPCOMING | ACTIVE | FINISHED
+model Season {
   id               String   @id @default(cuid())
-  title            String
-  description      String
-  price            Float
-  image            String?
-  categoryId       String
-  boosterId        String
-  estimatedTime    String   @default("1-3 дня")
-  features         String   @default("[]") // JSON array of feature strings
-  requirements     String   @default("[]") // JSON array of requirement strings
-  active           Boolean  @default(true)
-  moderationStatus String   @default("approved") // pending, approved, rejected
-  rejectionReason  String?
-  ordersCount      Int      @default(0)
-  rating           Float    @default(0)
-  reviewsCount     Int      @default(0)
+  name             String
+  slug             String   @unique
+  status           String   @default("UPCOMING")
+  isCurrent        Boolean  @default(false)
+  description      String?
+  rules            String?
+  /// JSON-массив очков за места, например [25,18,15,12,10,8,6,4,2,1]
+  pointsSystem     String   @default("[25,18,15,12,10,8,6,4,2,1]")
+  fastestLapPoint  Int      @default(1)
+  polePoint        Int      @default(0)
+  applicationsOpen Boolean  @default(true)
+  startDate        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  category         Category @relation(fields: [categoryId], references: [id])
-  booster          User     @relation("BoosterServices", fields: [boosterId], references: [id])
-  orders           Order[]
-  reviews          Review[]
+  teams        Team[]
+  entries      SeasonEntry[]
+  races        Race[]
+  applications Application[]
 }
 
-model Order {
+model Team {
   id            String   @id @default(cuid())
-  serviceId     String
-  clientId      String
-  boosterId     String?
-  status        String   @default("pending") // pending, in_progress, completed, disputed, cancelled, refunded
-  progress      Int      @default(0) // 0-100 percentage
-  price         Float
-  escrowLocked  Boolean  @default(true)
-  clientNotes   String?
-  boosterNotes  String?
-  completedAt   DateTime?
+  seasonId      String
+  name          String
+  shortName     String?
+  color         String   @default("#D4AF37")
+  logo          String?
+  /// Ручная корректировка очков команды (может быть отрицательной)
+  pointsAdjust  Int      @default(0)
+  order         Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  service       Service  @relation(fields: [serviceId], references: [id])
-  client        User     @relation("ClientOrders", fields: [clientId], references: [id])
-  booster       User?    @relation("BoosterOrders", fields: [boosterId], references: [id])
-  messages      ChatMessage[]
-  reviews       Review[]
+  season  Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  entries SeasonEntry[]
+
+  @@unique([seasonId, name])
+  @@index([seasonId])
 }
 
-model Review {
-  id        String   @id @default(cuid())
-  orderId   String
-  serviceId String
-  authorId  String
-  targetId  String
-  rating    Int      // 1-5
-  comment   String
-  createdAt DateTime @default(now())
+/// Пилот в рамках сезона. status: ACTIVE | RESERVE | INACTIVE
+model SeasonEntry {
+  id           String   @id @default(cuid())
+  seasonId     String
+  userId       String
+  teamId       String?
+  number       Int?
+  status       String   @default("ACTIVE")
+  /// Ручная корректировка очков пилота (штрафы/бонусы)
+  pointsAdjust Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  order     Order    @relation(fields: [orderId], references: [id])
-  service   Service  @relation(fields: [serviceId], references: [id])
-  author    User     @relation("ReviewAuthor", fields: [authorId], references: [id])
-  target    User     @relation("ReviewTarget", fields: [targetId], references: [id])
+  season  Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team    Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  results RaceResult[]
+
+  @@unique([seasonId, userId])
+  @@index([seasonId])
+  @@index([teamId])
 }
 
-model ChatMessage {
-  id        String   @id @default(cuid())
-  orderId   String
-  senderId  String
-  content   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+/// Этап календаря. status: SCHEDULED | LIVE | COMPLETED | CANCELLED
+model Race {
+  id           String   @id @default(cuid())
+  seasonId     String
+  round        Int
+  name         String
+  track        String
+  country      String?
+  flag         String?
+  date         DateTime
+  laps         Int?
+  status       String   @default("SCHEDULED")
+  broadcastUrl String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  order     Order    @relation(fields: [orderId], references: [id])
-  sender    User     @relation("MessageSender", fields: [senderId], references: [id])
+  season  Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  results RaceResult[]
+
+  @@unique([seasonId, round])
+  @@index([seasonId])
 }
 
-model Notification {
+model RaceResult {
+  id         String  @id @default(cuid())
+  raceId     String
+  entryId    String
+  position   Int?
+  /// Итоговые очки за гонку (считаются автоматически, могут быть изменены вручную)
+  points     Float   @default(0)
+  fastestLap Boolean @default(false)
+  pole       Boolean @default(false)
+  dnf        Boolean @default(false)
+  penalty    Int     @default(0)
+  note       String?
+
+  race  Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  entry SeasonEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, entryId])
+  @@index([raceId])
+  @@index([entryId])
+}
+
+/// Заявка на вступление в лигу. status: PENDING | APPROVED | REJECTED
+model Application {
+  id           String   @id @default(cuid())
+  userId       String
+  seasonId     String?
+  gameNick     String
+  platform     String
+  psnId        String?
+  age          Int?
+  experience   String?
+  availability String?
+  about        String?
+  preferredTeam String?
+  status       String   @default("PENDING")
+  adminComment String?
+  reviewerId   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User    @relation("ApplicationAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User?   @relation("ApplicationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  season   Season? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model News {
   id        String   @id @default(cuid())
-  userId    String
   title     String
-  message   String
-  type      String   @default("info") // info, success, warning, error
-  read      Boolean  @default(false)
+  slug      String   @unique
+  excerpt   String?
+  content   String
+  cover     String?
+  published Boolean  @default(true)
+  pinned    Boolean  @default(false)
+  authorId  String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user      User     @relation("UserNotifications", fields: [userId], references: [id])
-}
-
-model ModeratorLog {
-  id          String   @id @default(cuid())
-  moderatorId String
-  action      String
-  target      String   // what was affected
-  details     String?
-  createdAt   DateTime @default(now())
-
-  moderator   User     @relation("ModeratorActions", fields: [moderatorId], references: [id])
-}
-
-model PlatformSettings {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  updatedAt   DateTime @updatedAt
+  author User? @relation("NewsAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 }

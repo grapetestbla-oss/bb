@@ -47,9 +47,6 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Copy chat service
-COPY --from=builder /app/mini-services ./mini-services
-
 # Create db directory
 RUN mkdir -p ./db && chown nextjs:nodejs ./db
 
