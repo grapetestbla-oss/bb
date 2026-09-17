@@ -81,7 +81,11 @@ export function CatalogView() {
       <div className="text-center">
         <h1 className="f1-title text-[clamp(1.5rem,4vw,2.4rem)] text-white">Каталог сетапов</h1>
         <p className="mt-4 text-sm text-white/55">
-          {loading ? 'Загрузка…' : `${visible.length} сетапов · один товар на трассу, внутри сухо и дождь`}
+          {loading
+            ? 'Загрузка…'
+            : visible.length
+              ? `${visible.length} сетапов · один товар на трассу, внутри сухо и дождь`
+              : 'Один товар на трассу, внутри сухо и дождь'}
         </p>
       </div>
 
@@ -141,10 +145,19 @@ export function CatalogView() {
         </div>
       ) : (
         <div className="mt-12 border border-white/10 p-12 text-center">
-          <p className="text-white/55">По вашему запросу сетапов не найдено.</p>
-          <button type="button" onClick={reset} className="f1-eyebrow mt-4 text-white/70 hover:text-white">
-            Сбросить фильтры
-          </button>
+          {setups.length === 0 && !pack && !pilot && !track ? (
+            <p className="mx-auto max-w-md text-white/55">
+              Каталог пока пуст — сетапы добавляются вручную и появятся здесь сразу после
+              публикации.
+            </p>
+          ) : (
+            <>
+              <p className="text-white/55">По вашему запросу сетапов не найдено.</p>
+              <button type="button" onClick={reset} className="f1-eyebrow mt-4 text-white/70 hover:text-white">
+                Сбросить фильтры
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

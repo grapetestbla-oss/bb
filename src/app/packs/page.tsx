@@ -65,7 +65,15 @@ export default async function PacksPage() {
       )}
 
       {/* Паки по играм, сгруппированы по пилотам */}
-      <div className="mt-16 flex flex-col gap-16 border-t border-white/10 pt-14">
+      {fullPacks.length === 0 && pilots.every((pilot) => pilot.packs.length === 0) && (
+        <div className="mt-12 border border-white/10 p-12 text-center">
+          <p className="mx-auto max-w-md text-white/55">
+            Паков пока нет — они собираются из сетапов в панели и появятся здесь после публикации.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-16 flex flex-col gap-16 empty:mt-0 empty:border-0 empty:pt-0 border-t border-white/10 pt-14">
         {pilots
           .map((pilot) => ({ ...pilot, packs: pilot.packs.filter((pack) => pack.game !== 'all') }))
           .filter((pilot) => pilot.packs.length > 0)

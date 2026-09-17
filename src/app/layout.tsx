@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { getCurrentUser } from '@/lib/auth'
+import { getSiteSettings } from '@/lib/settings'
 
 const display = Oswald({
   variable: '--font-display',
@@ -26,16 +27,16 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getCurrentUser()
+  const [user, site] = await Promise.all([getCurrentUser(), getSiteSettings()])
 
   return (
     <html lang="ru" suppressHydrationWarning className="dark">
       <body
         className={`${display.variable} ${body.variable} antialiased min-h-screen flex flex-col bg-black`}
       >
-        <SiteHeader user={user} />
+        <SiteHeader user={user} socials={site.socials} />
         <main className="flex-1">{children}</main>
-        <SiteFooter />
+        <SiteFooter socials={site.socials} />
         <Toaster richColors position="top-right" theme="dark" />
       </body>
     </html>

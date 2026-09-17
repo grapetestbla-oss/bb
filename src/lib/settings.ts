@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { DEFAULT_SOCIALS, type SocialLinks } from '@/lib/socials'
 import { parseJson } from '@/lib/api'
 
 export type FreekassaConfig = {
@@ -27,6 +28,7 @@ export type SiteSettings = {
   title: string
   subtitle: string
   contact: string
+  socials: SocialLinks
 }
 
 export const DEFAULT_PAYMENTS: PaymentSettings = {
@@ -41,7 +43,14 @@ export const DEFAULT_PAYMENTS: PaymentSettings = {
 export const DEFAULT_SITE: SiteSettings = {
   title: 'FANTASTIQUEBOY SETUPS',
   subtitle: 'Профессиональные сетапы для F1 25 и 2026 Season Pack',
-  contact: '@fantasticqueboy',
+  contact: 'https://t.me/simraceboy',
+  socials: DEFAULT_SOCIALS,
+}
+
+/** Настройки сайта с подстановкой значений по умолчанию для вложенных соцсетей. */
+export async function getSiteSettings(): Promise<SiteSettings> {
+  const stored = await getSetting<SiteSettings>('site', DEFAULT_SITE)
+  return { ...stored, socials: { ...DEFAULT_SOCIALS, ...stored.socials } }
 }
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
@@ -88,3 +97,5 @@ export function maskPayments(settings: PaymentSettings) {
     manual: settings.manual,
   }
 }
+
+export type { SocialLinks }

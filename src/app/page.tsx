@@ -8,6 +8,20 @@ import { parseJson } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
+/** Склонение существительного по числу: 1 сетап, 2 сетапа, 5 сетапов. */
+function plural(count: number, one: string, few: string, many: string) {
+  const mod100 = count % 100
+  if (mod100 >= 11 && mod100 <= 14) return many
+  const mod10 = count % 10
+  if (mod10 === 1) return one
+  if (mod10 >= 2 && mod10 <= 4) return few
+  return many
+}
+
+const EMPTY_NOTE =
+  'Каталог наполняется: сетапы и паки появятся здесь сразу после добавления. ' +
+  'Пока можно записаться на обучение или написать в Telegram.'
+
 const CREDENTIALS = [
   '🏁 Один сетап на трассу: сухо и дождь в одном товаре',
   '🏎️ Все трассы F1 25 и 2026 Season Pack',
@@ -93,11 +107,37 @@ export default async function HomePage() {
           </ul>
           <p className="mx-auto mt-8 max-w-xl text-white/60">
             Квалификацию и гонку мы не разделяем — настройки под них почти совпадают. Покупаете
-            трассу и получаете оба варианта: сухо и дождь. Сейчас в каталоге {setupsCount} сетапов на{' '}
-            {tracksCount} трассах от {pilotsCount} пилотов.
+            трассу и получаете оба варианта: сухо и дождь.
+            {setupsCount > 0
+              ? ` Сейчас в каталоге ${setupsCount} ${plural(setupsCount, 'сетап', 'сетапа', 'сетапов')} на ${tracksCount} ${plural(tracksCount, 'трассе', 'трассах', 'трассах')} от ${pilotsCount} ${plural(pilotsCount, 'пилота', 'пилотов', 'пилотов')}.`
+              : ` В игре ${tracksCount} ${plural(tracksCount, 'трасса', 'трассы', 'трасс')} — сетапы выкладываются по мере готовности.`}
           </p>
         </div>
       </section>
+
+      {/* КАТАЛОГ ПУСТ */}
+      {packs.length === 0 && highlights.length === 0 && (
+        <section className="border-t border-white/10">
+          <div className="mx-auto max-w-3xl px-4 py-16 text-center md:py-20">
+            <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Скоро в продаже</h2>
+            <p className="mx-auto mt-6 max-w-xl text-white/60">{EMPTY_NOTE}</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/training"
+                className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+              >
+                Обучение
+              </Link>
+              <Link
+                href="/catalog"
+                className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+              >
+                Каталог
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ПАКИ ПИЛОТОВ */}
       {packs.length > 0 && (

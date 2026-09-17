@@ -7,6 +7,7 @@ import { Bell, LogOut, Menu, Search, Shield, User as UserIcon, X } from 'lucide-
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { SessionUser } from '@/lib/auth'
+import { SOCIAL_LABELS, type SocialLinks } from '@/lib/socials'
 
 const NAV = [
   { href: '/', label: 'Главная' },
@@ -15,7 +16,13 @@ const NAV = [
   { href: '/training', label: 'Обучение' },
 ]
 
-export function SiteHeader({ user }: { user: SessionUser | null }) {
+export function SiteHeader({
+  user,
+  socials,
+}: {
+  user: SessionUser | null
+  socials: SocialLinks
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -40,7 +47,19 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
       {/* Верхняя служебная строка */}
       <div className="hidden border-b border-white/10 md:block">
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 text-[11px] uppercase tracking-[0.18em] text-white/55">
-          <span>Telegram · Discord · YouTube</span>
+          <nav className="flex gap-5">
+            {SOCIAL_LABELS.filter(({ key }) => socials[key]).map(({ key, label }) => (
+              <a
+                key={key}
+                href={socials[key]}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="transition-colors hover:text-white"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
           <span>Россия (RUB ₽)</span>
         </div>
       </div>

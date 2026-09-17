@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import type { PaymentsForm } from '@/components/admin/types'
+import { SOCIAL_LABELS, type SocialLinks } from '@/lib/socials'
 
 const EMPTY: PaymentsForm = {
   freekassa: { enabled: false, merchantId: '', secret1: '', secret2: '', currency: 'RUB' },
@@ -18,8 +19,18 @@ const EMPTY: PaymentsForm = {
   manual: { enabled: true, instructions: '' },
 }
 
+const EMPTY_SOCIALS: SocialLinks = {
+  telegram: '',
+  youtube: '',
+  twitch: '',
+  kick: '',
+  tiktok: '',
+  discord: '',
+}
+
 export function AdminPayments() {
   const [form, setForm] = useState<PaymentsForm>(EMPTY)
+  const [socials, setSocials] = useState<SocialLinks>(EMPTY_SOCIALS)
   const [origin, setOrigin] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -30,6 +41,7 @@ export function AdminPayments() {
       .then((r) => r.json())
       .then((d) => {
         if (d.payments) setForm({ ...EMPTY, ...d.payments })
+        if (d.site?.socials) setSocials({ ...EMPTY_SOCIALS, ...d.site.socials })
       })
       .catch(() => toast.error('Не удалось загрузить настройки'))
       .finally(() => setLoading(false))
@@ -42,11 +54,11 @@ export function AdminPayments() {
       const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payments: form }),
+        body: JSON.stringify({ payments: form, site: { socials } }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Не удалось сохранить')
-      toast.success('Настройки платёжных систем сохранены')
+      toast.success('Настройки сохранены')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Ошибка')
     } finally {
@@ -209,6 +221,29 @@ export function AdminPayments() {
             value={form.manual.instructions}
             onChange={(e) => setForm((f) => ({ ...f, manual: { ...f.manual, instructions: e.target.value } }))}
           />
+        </div>
+      </Card>
+
+      {/* Соцсети */}
+      <Card className="stripe-left border-border/70 bg-card/80 p-6">
+        <div>
+          <h3 className="f1-title text-xl">Соцсети</h3>
+          <p className="text-sm text-muted-foreground">
+            Ссылки выводятся в шапке и подвале сайта. Пустое поле скрывает ссылку.
+          </p>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {SOCIAL_LABELS.map(({ key, label }) => (
+            <div key={key} className="space-y-2">
+              <Label htmlFor={`social-${key}`}>{label}</Label>
+              <Input
+                id={`social-${key}`}
+                value={socials[key]}
+                onChange={(e) => setSocials((prev) => ({ ...prev, [key]: e.target.value }))}
+                placeholder="https://"
+              />
+            </div>
+          ))}
         </div>
       </Card>
 

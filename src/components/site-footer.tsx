@@ -1,8 +1,9 @@
 import Link from 'next/link'
+import { SOCIAL_LABELS, type SocialLinks } from '@/lib/socials'
 
 const PAYMENTS = ['Visa', 'Mastercard', 'МИР', 'СБП', 'ЮMoney', 'FreeKassa', 'Platega']
 
-export function SiteFooter() {
+export function SiteFooter({ socials }: { socials: SocialLinks }) {
   return (
     <footer className="border-t border-white/10 bg-black">
       <div className="mx-auto max-w-3xl px-4 py-14 text-center">
@@ -38,7 +39,19 @@ export function SiteFooter() {
             ))}
           </nav>
 
-          <p className="f1-eyebrow text-white/50">Telegram · Discord · YouTube · TikTok</p>
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            {SOCIAL_LABELS.filter(({ key }) => socials[key]).map(({ key, label }) => (
+              <a
+                key={key}
+                href={socials[key]}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="f1-eyebrow text-white/50 transition-colors hover:text-white"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
 
           <div className="flex flex-wrap justify-center gap-2">
             {PAYMENTS.map((method) => (

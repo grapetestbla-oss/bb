@@ -2,11 +2,9 @@ import { requireAdmin } from '@/lib/auth'
 import { handleError, ok } from '@/lib/api'
 import {
   DEFAULT_PAYMENTS,
-  DEFAULT_SITE,
   getPaymentSettings,
-  getSetting,
+  getSiteSettings,
   setSetting,
-  type SiteSettings,
 } from '@/lib/settings'
 
 export const dynamic = 'force-dynamic'
@@ -14,10 +12,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     await requireAdmin()
-    const [payments, site] = await Promise.all([
-      getPaymentSettings(),
-      getSetting<SiteSettings>('site', DEFAULT_SITE),
-    ])
+    const [payments, site] = await Promise.all([getPaymentSettings(), getSiteSettings()])
     return ok({ payments, site })
   } catch (error) {
     return handleError(error)
@@ -41,14 +36,15 @@ export async function PUT(request: Request) {
     }
 
     if (body.site) {
-      const current = await getSetting<SiteSettings>('site', DEFAULT_SITE)
-      await setSetting('site', { ...current, ...body.site })
+      const current = await getSiteSettings()
+      await setSetting('site', {
+        ...current,
+        ...body.site,
+        socials: { ...current.socials, ...(body.site.socials ?? {}) },
+      })
     }
 
-    const [payments, site] = await Promise.all([
-      getPaymentSettings(),
-      getSetting<SiteSettings>('site', DEFAULT_SITE),
-    ])
+    const [payments, site] = await Promise.all([getPaymentSettings(), getSiteSettings()])
     return ok({ payments, site })
   } catch (error) {
     return handleError(error)
