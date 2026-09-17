@@ -9,21 +9,60 @@ export type AdminTrack = {
   _count?: { setups: number }
 }
 
+export type AdminPilot = {
+  id: string
+  slug: string
+  name: string
+  title: string
+  bio: string
+  contact: string | null
+  order: number
+  active: boolean
+  _count?: { setups: number; packs: number }
+}
+
+export type AdminSetupVariant = {
+  id: string
+  condition: string
+  title: string
+  notes: string
+  data: string | null
+  order: number
+}
+
 export type AdminSetup = {
   id: string
   trackId: string
+  pilotId: string
   title: string
-  type: string
   pack: string
   price: number
   oldPrice: number | null
   description: string
-  data: string | null
   previewData: string
   sales: number
   featured: boolean
   active: boolean
   track: AdminTrack
+  pilot: AdminPilot
+  variants: AdminSetupVariant[]
+}
+
+export type AdminPack = {
+  id: string
+  slug: string
+  title: string
+  description: string
+  pilotId: string
+  game: string
+  price: number
+  oldPrice: number | null
+  sales: number
+  featured: boolean
+  active: boolean
+  order: number
+  pilot: AdminPilot
+  setups: { setupId: string; setup?: AdminSetup }[]
 }
 
 export type AdminOrder = {
@@ -35,6 +74,7 @@ export type AdminOrder = {
   createdAt: string
   user: { login: string; email: string; contact: string | null }
   setup: { title: string; track: { name: string; flag: string } } | null
+  packSet: { title: string } | null
   plan: { title: string } | null
   training: { status: string } | null
 }

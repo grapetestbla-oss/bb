@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 export async function markOrderPaid(orderId: string, provider?: string) {
   const order = await db.order.findUnique({
     where: { id: orderId },
-    include: { setup: { include: { track: true } }, plan: true, training: true, user: true },
+    include: { setup: { include: { track: true } }, packSet: true, plan: true, training: true, user: true },
   })
   if (!order) throw new Error('Заказ не найден')
   if (order.status === 'paid') return order
@@ -12,19 +12,19 @@ export async function markOrderPaid(orderId: string, provider?: string) {
   const updated = await db.order.update({
     where: { id: orderId },
     data: { status: 'paid', paidAt: new Date(), provider: provider || order.provider },
-    include: { setup: { include: { track: true } }, plan: true, training: true, user: true },
+    include: { setup: { include: { track: true } }, packSet: true, plan: true, training: true, user: true },
   })
 
   if (updated.setupId) {
-    await db.setup.update({
-      where: { id: updated.setupId },
-      data: { sales: { increment: 1 } },
-    })
+    await db.setup.update({ where: { id: updated.setupId }, data: { sales: { increment: 1 } } })
+  }
+  if (updated.packId) {
+    await db.pack.update({ where: { id: updated.packId }, data: { sales: { increment: 1 } } })
   }
 
   const label = updated.setup
-    ? `${updated.setup.title} — ${updated.setup.track.name}`
-    : updated.plan?.title ?? 'Заказ'
+    ? updated.setup.track.name
+    : updated.packSet?.title ?? updated.plan?.title ?? 'Заказ'
 
   await db.notification.create({
     data: {
@@ -40,7 +40,12 @@ export async function markOrderPaid(orderId: string, provider?: string) {
     data: {
       userId: null,
       type: updated.kind === 'training' ? 'training' : 'order',
-      title: updated.kind === 'training' ? 'Оплачена заявка на обучение' : 'Новая продажа сетапа',
+      title:
+        updated.kind === 'training'
+          ? 'Оплачена заявка на обучение'
+          : updated.kind === 'pack'
+            ? 'Новая продажа пака'
+            : 'Новая продажа сетапа',
       body: `${updated.user.login} — «${label}» на сумму ${updated.amount.toFixed(0)} ₽`,
       link: updated.kind === 'training' ? '/admin?tab=training' : '/admin?tab=orders',
     },

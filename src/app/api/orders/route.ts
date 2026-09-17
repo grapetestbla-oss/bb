@@ -11,17 +11,15 @@ export async function GET() {
     const user = await requireUser()
     const orders = await db.order.findMany({
       where: { userId: user.id },
-      include: { setup: { include: { track: true } }, plan: true, training: true },
+      include: {
+        setup: { include: { track: true, pilot: true, variants: { orderBy: { order: 'asc' } } } },
+        packSet: { include: { pilot: true, setups: { include: { setup: { include: { track: true } } } } } },
+        plan: true,
+        training: true,
+      },
       orderBy: { createdAt: 'desc' },
     })
-    return ok({
-      orders: orders.map((order) => ({
-        ...order,
-        setup: order.setup
-          ? { ...order.setup, data: order.status === 'paid' ? order.setup.data : null }
-          : null,
-      })),
-    })
+    return ok({ orders })
   } catch (error) {
     return handleError(error)
   }
@@ -31,16 +29,36 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser()
     const body = await request.json()
-    const kind = body.kind === 'training' ? 'training' : 'setup'
+    const kind: 'setup' | 'pack' | 'training' =
+      body.kind === 'training' ? 'training' : body.kind === 'pack' ? 'pack' : 'setup'
     const provider = (body.provider || 'manual') as PaymentProvider
 
     let amount = 0
     let description = ''
     let setupId: string | null = null
+    let packId: string | null = null
     let planId: string | null = null
 
-    if (kind === 'setup') {
-      const setup = await db.setup.findUnique({ where: { id: String(body.setupId) }, include: { track: true } })
+    if (kind === 'pack') {
+      const pack = await db.pack.findUnique({
+        where: { id: String(body.packId) },
+        include: { pilot: true },
+      })
+      if (!pack || !pack.active) return fail('Пак не найден', 404)
+
+      const already = await db.order.findFirst({
+        where: { userId: user.id, packId: pack.id, status: 'paid' },
+      })
+      if (already) return fail('Этот пак уже куплен — он доступен в профиле', 409)
+
+      packId = pack.id
+      amount = pack.price
+      description = `Пак «${pack.title}» — ${pack.pilot.name}`
+    } else if (kind === 'setup') {
+      const setup = await db.setup.findUnique({
+        where: { id: String(body.setupId) },
+        include: { track: true, pilot: true },
+      })
       if (!setup || !setup.active) return fail('Сетап не найден', 404)
 
       const already = await db.order.findFirst({
@@ -50,7 +68,7 @@ export async function POST(request: Request) {
 
       setupId = setup.id
       amount = setup.price
-      description = `Сетап «${setup.title}» — ${setup.track.name}`
+      description = `Сетап «${setup.track.name}» — ${setup.pilot.name}`
     } else {
       const plan = await db.trainingPlan.findUnique({ where: { id: String(body.planId) } })
       if (!plan || !plan.active) return fail('Программа обучения не найдена', 404)
@@ -67,7 +85,7 @@ export async function POST(request: Request) {
     }
 
     const order = await db.order.create({
-      data: { userId: user.id, kind, setupId, planId, amount, status: 'pending', provider },
+      data: { userId: user.id, kind, setupId, packId, planId, amount, status: 'pending', provider },
     })
 
     if (kind === 'training') {

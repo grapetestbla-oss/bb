@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { getCurrentUser, requireAdmin } from '@/lib/auth'
 import { fail, handleError, ok } from '@/lib/api'
+import { getOwnedSetupIds } from '@/lib/ownership'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,18 +12,18 @@ export async function GET(request: Request) {
     const isAdmin = user?.role === 'admin'
 
     const trackSlug = params.get('track')
-    const type = params.get('type')
     const pack = params.get('pack')
+    const pilot = params.get('pilot')
     const search = params.get('search')
     const featured = params.get('featured')
 
     const setups = await db.setup.findMany({
       where: {
         ...(isAdmin ? {} : { active: true }),
-        ...(type ? { type } : {}),
         ...(pack ? { pack } : {}),
         ...(featured === 'true' ? { featured: true } : {}),
         ...(trackSlug ? { track: { slug: trackSlug } } : {}),
+        ...(pilot ? { pilot: { slug: pilot } } : {}),
         ...(search
           ? {
               OR: [
@@ -33,24 +34,24 @@ export async function GET(request: Request) {
             }
           : {}),
       },
-      include: { track: true },
-      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+      include: { track: true, pilot: true, variants: { orderBy: { order: 'asc' } } },
+      orderBy: [{ featured: 'desc' }, { track: { round: 'asc' } }],
     })
 
-    // содержимое сетапа не отдаём без покупки
-    const paidSetupIds = user
-      ? (
-          await db.order.findMany({
-            where: { userId: user.id, status: 'paid', setupId: { not: null } },
-            select: { setupId: true },
-          })
-        ).map((o) => o.setupId)
-      : []
+    const owned = await getOwnedSetupIds(user?.id)
 
     return ok({
       setups: setups.map((setup) => {
-        const owned = isAdmin || paidSetupIds.includes(setup.id)
-        return { ...setup, data: owned ? setup.data : null, owned }
+        const isOwned = isAdmin || owned.has(setup.id)
+        return {
+          ...setup,
+          owned: isOwned,
+          // значения вариантов скрыты до покупки
+          variants: setup.variants.map((variant) => ({
+            ...variant,
+            data: isOwned ? variant.data : null,
+          })),
+        }
       }),
     })
   } catch (error) {
@@ -62,23 +63,36 @@ export async function POST(request: Request) {
   try {
     await requireAdmin()
     const body = await request.json()
-    if (!body.trackId || !body.title) return fail('Укажите трассу и название сетапа')
+    if (!body.trackId || !body.pilotId || !body.title) {
+      return fail('Укажите трассу, пилота и название сетапа')
+    }
+
+    const variants: { condition: string; title?: string; notes?: string; data?: unknown }[] =
+      Array.isArray(body.variants) ? body.variants : []
 
     const setup = await db.setup.create({
       data: {
         trackId: String(body.trackId),
+        pilotId: String(body.pilotId),
         title: String(body.title),
-        type: String(body.type || 'race'),
         pack: String(body.pack || 'f125'),
         price: Number(body.price || 0),
         oldPrice: body.oldPrice ? Number(body.oldPrice) : null,
         description: String(body.description || ''),
-        data: JSON.stringify(body.data ?? {}),
         previewData: JSON.stringify(body.previewData ?? {}),
         featured: Boolean(body.featured),
         active: body.active === undefined ? true : Boolean(body.active),
+        variants: {
+          create: variants.map((variant, index) => ({
+            condition: String(variant.condition || 'dry'),
+            title: String(variant.title || ''),
+            notes: String(variant.notes || ''),
+            data: JSON.stringify(variant.data ?? {}),
+            order: index,
+          })),
+        },
       },
-      include: { track: true },
+      include: { track: true, pilot: true, variants: true },
     })
     return ok({ setup })
   } catch (error) {

@@ -24,54 +24,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { EMPTY_SETUP, PACKS, SETUP_FIELDS, SETUP_TYPES, packLabel, typeLabel, type SetupData } from '@/lib/f1-data'
-import type { AdminSetup, AdminTrack } from '@/components/admin/types'
+import { CONDITIONS, EMPTY_SETUP, PACKS, SETUP_FIELDS, packLabel, type SetupData } from '@/lib/f1-data'
+import type { AdminSetup, AdminTrack, AdminPilot } from '@/components/admin/types'
+import { cn } from '@/lib/utils'
+
+type VariantForm = { condition: string; title: string; notes: string; data: SetupData }
 
 type FormState = {
   id?: string
   trackId: string
+  pilotId: string
   title: string
-  type: string
   pack: string
   price: string
   oldPrice: string
   description: string
   featured: boolean
   active: boolean
-  data: SetupData
+  variants: VariantForm[]
 }
 
-const emptyForm = (trackId = ''): FormState => ({
+const emptyVariants = (): VariantForm[] =>
+  CONDITIONS.map((condition) => ({
+    condition: condition.value,
+    title: condition.label,
+    notes: condition.hint,
+    data: { ...EMPTY_SETUP },
+  }))
+
+const emptyForm = (trackId = '', pilotId = ''): FormState => ({
   trackId,
+  pilotId,
   title: '',
-  type: 'race',
   pack: 'f125',
   price: '199',
   oldPrice: '',
   description: '',
   featured: false,
   active: true,
-  data: { ...EMPTY_SETUP },
+  variants: emptyVariants(),
 })
 
 export function AdminSetups() {
   const [setups, setSetups] = useState<AdminSetup[]>([])
   const [tracks, setTracks] = useState<AdminTrack[]>([])
+  const [pilots, setPilots] = useState<AdminPilot[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
   const [form, setForm] = useState<FormState>(emptyForm())
+  const [tab, setTab] = useState(0)
 
   const load = useCallback(() => {
-    setLoading(true)
     Promise.all([
       fetch('/api/setups').then((r) => r.json()),
       fetch('/api/tracks').then((r) => r.json()),
+      fetch('/api/pilots').then((r) => r.json()),
     ])
-      .then(([s, t]) => {
+      .then(([s, t, p]) => {
         setSetups(s.setups || [])
         setTracks(t.tracks || [])
+        setPilots(p.pilots || [])
       })
       .catch(() => toast.error('Не удалось загрузить данные'))
       .finally(() => setLoading(false))
@@ -80,54 +94,59 @@ export function AdminSetups() {
   useEffect(load, [load])
 
   const openCreate = () => {
-    setForm(emptyForm(tracks[0]?.id))
+    setForm(emptyForm(tracks[0]?.id, pilots[0]?.id))
+    setTab(0)
     setOpen(true)
   }
 
   const openEdit = (setup: AdminSetup) => {
-    let data: SetupData = { ...EMPTY_SETUP }
-    try {
-      data = { ...EMPTY_SETUP, ...(JSON.parse(setup.data || '{}') as SetupData) }
-    } catch {
-      /* значения по умолчанию */
-    }
+    const variants: VariantForm[] = (setup.variants ?? []).map((variant) => {
+      let data: SetupData = { ...EMPTY_SETUP }
+      try {
+        data = { ...EMPTY_SETUP, ...(JSON.parse(variant.data || '{}') as SetupData) }
+      } catch {
+        /* значения по умолчанию */
+      }
+      return { condition: variant.condition, title: variant.title, notes: variant.notes, data }
+    })
+
     setForm({
       id: setup.id,
       trackId: setup.trackId,
+      pilotId: setup.pilotId,
       title: setup.title,
-      type: setup.type,
       pack: setup.pack,
       price: String(setup.price),
       oldPrice: setup.oldPrice ? String(setup.oldPrice) : '',
       description: setup.description,
       featured: setup.featured,
       active: setup.active,
-      data,
+      variants: variants.length ? variants : emptyVariants(),
     })
+    setTab(0)
     setOpen(true)
   }
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.trackId) return toast.error('Выберите трассу')
+    if (!form.pilotId) return toast.error('Выберите пилота')
+
     setSaving(true)
     try {
+      const dry = form.variants.find((v) => v.condition === 'dry')?.data ?? form.variants[0].data
       const payload = {
         trackId: form.trackId,
+        pilotId: form.pilotId,
         title: form.title,
-        type: form.type,
         pack: form.pack,
         price: Number(form.price) || 0,
         oldPrice: form.oldPrice ? Number(form.oldPrice) : null,
         description: form.description,
         featured: form.featured,
         active: form.active,
-        data: form.data,
-        previewData: {
-          frontWing: form.data.frontWing,
-          rearWing: form.data.rearWing,
-          brakeBias: form.data.brakeBias,
-        },
+        variants: form.variants,
+        previewData: { frontWing: dry.frontWing, rearWing: dry.rearWing, brakeBias: dry.brakeBias },
       }
       const response = await fetch(form.id ? `/api/setups/${form.id}` : '/api/setups', {
         method: form.id ? 'PATCH' : 'POST',
@@ -147,7 +166,7 @@ export function AdminSetups() {
   }
 
   const remove = async (setup: AdminSetup) => {
-    if (!confirm(`Удалить сетап «${setup.title}»?`)) return
+    if (!confirm(`Удалить сетап «${setup.track.name} — ${setup.pilot.name}»?`)) return
     const response = await fetch(`/api/setups/${setup.id}`, { method: 'DELETE' })
     if (response.ok) {
       toast.success('Сетап удалён')
@@ -169,10 +188,19 @@ export function AdminSetups() {
   const visible = setups.filter((s) => {
     const q = filter.trim().toLowerCase()
     if (!q) return true
-    return s.title.toLowerCase().includes(q) || s.track.name.toLowerCase().includes(q)
+    return s.track.name.toLowerCase().includes(q) || s.pilot.name.toLowerCase().includes(q)
   })
 
   const groups = Array.from(new Set(SETUP_FIELDS.map((f) => f.group)))
+  const current = form.variants[tab]
+
+  const setValue = (key: keyof SetupData, value: number) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((variant, index) =>
+        index === tab ? { ...variant, data: { ...variant.data, [key]: value } } : variant
+      ),
+    }))
 
   return (
     <div className="space-y-5">
@@ -180,7 +208,7 @@ export function AdminSetups() {
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Поиск по названию или трассе"
+          placeholder="Поиск по трассе или пилоту"
           className="max-w-xs"
         />
         <Button onClick={openCreate} className="ml-auto bg-white text-black hover:bg-white/85">
@@ -196,9 +224,9 @@ export function AdminSetups() {
             <thead className="carbon text-left uppercase tracking-wide">
               <tr>
                 <th className="px-4 py-3">Трасса</th>
-                <th className="px-4 py-3">Название</th>
-                <th className="px-4 py-3">Тип</th>
-                <th className="px-4 py-3">Пакет</th>
+                <th className="px-4 py-3">Пилот</th>
+                <th className="px-4 py-3">Варианты</th>
+                <th className="px-4 py-3">Игра</th>
                 <th className="px-4 py-3">Цена</th>
                 <th className="px-4 py-3">Продажи</th>
                 <th className="px-4 py-3">Статус</th>
@@ -209,10 +237,10 @@ export function AdminSetups() {
               {visible.map((setup) => (
                 <tr key={setup.id} className="hover:bg-white/[0.03]">
                   <td className="px-4 py-3">{setup.track.flag} {setup.track.name}</td>
-                  <td className="px-4 py-3">{setup.title}</td>
-                  <td className="px-4 py-3">{typeLabel(setup.type)}</td>
+                  <td className="px-4 py-3">{setup.pilot.name}</td>
+                  <td className="px-4 py-3">{setup.variants?.length ?? 0}</td>
                   <td className="px-4 py-3">{packLabel(setup.pack)}</td>
-                  <td className="px-4 py-3 font-mono">{setup.price.toFixed(0)} ₽</td>
+                  <td className="px-4 py-3 tabular-nums">{setup.price.toFixed(0)} ₽</td>
                   <td className="px-4 py-3">{setup.sales}</td>
                   <td className="px-4 py-3">
                     <Badge
@@ -254,11 +282,11 @@ export function AdminSetups() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="f1-title text-2xl">
+            <DialogTitle className="f1-title text-xl">
               {form.id ? 'Редактирование сетапа' : 'Новый сетап'}
             </DialogTitle>
             <DialogDescription>
-              Параметры откроются покупателю сразу после подтверждения оплаты.
+              Один товар на трассу: квалификацию и гонку не делим, внутри лежат варианты по условиям.
             </DialogDescription>
           </DialogHeader>
 
@@ -278,28 +306,28 @@ export function AdminSetups() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Пилот</Label>
+                <Select value={form.pilotId} onValueChange={(v) => setForm((f) => ({ ...f, pilotId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Выберите пилота" /></SelectTrigger>
+                  <SelectContent>
+                    {pilots.map((pilot) => (
+                      <SelectItem key={pilot.id} value={pilot.id}>{pilot.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="s-title">Название</Label>
                 <Input
                   id="s-title"
                   required
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="Гоночный сетап — Monza"
+                  placeholder="Monza — Коля"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Тип</Label>
-                <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SETUP_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Пакет</Label>
+                <Label>Игра</Label>
                 <Select value={form.pack} onValueChange={(v) => setForm((f) => ({ ...f, pack: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -320,7 +348,7 @@ export function AdminSetups() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="s-old">Старая цена, ₽ (для скидки)</Label>
+                <Label htmlFor="s-old">Старая цена, ₽</Label>
                 <Input
                   id="s-old"
                   type="number"
@@ -344,7 +372,7 @@ export function AdminSetups() {
             <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={form.featured} onCheckedChange={(v) => setForm((f) => ({ ...f, featured: v }))} />
-                Показывать как «Хит»
+                Показывать на главной
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={form.active} onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))} />
@@ -352,37 +380,81 @@ export function AdminSetups() {
               </label>
             </div>
 
+            {/* Варианты */}
             <div className="space-y-4">
-              <h3 className="f1-title text-lg">Параметры машины</h3>
-              {groups.map((group) => (
-                <div key={group}>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {group}
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {SETUP_FIELDS.filter((f) => f.group === group).map((field) => (
-                      <div key={field.key} className="space-y-1.5">
-                        <Label htmlFor={`f-${field.key}`} className="text-xs">
-                          {field.label}
-                          {field.unit ? `, ${field.unit}` : ''}
-                        </Label>
-                        <Input
-                          id={`f-${field.key}`}
-                          type="number"
-                          step={field.step ?? 1}
-                          value={form.data[field.key]}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              data: { ...f.data, [field.key]: Number(e.target.value) },
-                            }))
-                          }
-                        />
-                      </div>
-                    ))}
+              <div className="flex flex-wrap gap-2">
+                {form.variants.map((variant, index) => (
+                  <button
+                    key={variant.condition}
+                    type="button"
+                    onClick={() => setTab(index)}
+                    className={cn(
+                      'border border-white/15 px-4 py-2 text-xs uppercase tracking-[0.16em] text-white/60',
+                      index === tab && 'border-white bg-white text-black'
+                    )}
+                  >
+                    {variant.title || variant.condition}
+                  </button>
+                ))}
+              </div>
+
+              {current && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="v-title">Название варианта</Label>
+                      <Input
+                        id="v-title"
+                        value={current.title}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            variants: f.variants.map((v, i) => (i === tab ? { ...v, title: e.target.value } : v)),
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="v-notes">Комментарий к варианту</Label>
+                      <Input
+                        id="v-notes"
+                        value={current.notes}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            variants: f.variants.map((v, i) => (i === tab ? { ...v, notes: e.target.value } : v)),
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+
+                  {groups.map((group) => (
+                    <div key={group}>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {group}
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {SETUP_FIELDS.filter((f) => f.group === group).map((field) => (
+                          <div key={field.key} className="space-y-1.5">
+                            <Label htmlFor={`f-${field.key}`} className="text-xs">
+                              {field.label}
+                              {field.unit ? `, ${field.unit}` : ''}
+                            </Label>
+                            <Input
+                              id={`f-${field.key}`}
+                              type="number"
+                              step={field.step ?? 1}
+                              value={current.data[field.key]}
+                              onChange={(e) => setValue(field.key, Number(e.target.value))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

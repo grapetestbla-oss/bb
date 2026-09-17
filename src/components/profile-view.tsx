@@ -11,8 +11,8 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { SetupValues } from '@/components/setup-values'
-import { deviceLabel, platformLabel, typeLabel, type SetupData } from '@/lib/f1-data'
+import { SetupVariants } from '@/components/setup-variants'
+import { deviceLabel, platformLabel, type SetupData } from '@/lib/f1-data'
 import type { SessionUser } from '@/lib/auth'
 
 type Order = {
@@ -26,10 +26,17 @@ type Order = {
   setup: {
     id: string
     title: string
-    type: string
+    pilot: string
     track: { name: string; flag: string }
-    data: Partial<SetupData> | null
+    variants: {
+      id: string
+      condition: string
+      title: string
+      notes: string
+      data: Partial<SetupData> | null
+    }[]
   } | null
+  pack: { id: string; title: string; pilot: string; tracksCount: number } | null
   plan: { title: string; duration: string } | null
   training: {
     status: string
@@ -71,7 +78,7 @@ export function ProfileView({
   orders: Order[]
   notifications: Notification[]
 }) {
-  const purchases = orders.filter((o) => o.kind === 'setup')
+  const purchases = orders.filter((o) => o.kind === 'setup' || o.kind === 'pack')
   const trainings = orders.filter((o) => o.kind === 'training')
   const unread = notifications.filter((n) => !n.read).length
 
@@ -99,7 +106,7 @@ export function ProfileView({
       <Tabs defaultValue="setups" className="mt-8">
         <TabsList className="flex-wrap">
           <TabsTrigger value="setups">
-            <Package className="mr-1.5 h-4 w-4" /> Мои сетапы ({purchases.length})
+            <Package className="mr-1.5 h-4 w-4" /> Мои покупки ({purchases.length})
           </TabsTrigger>
           <TabsTrigger value="training">
             <GraduationCap className="mr-1.5 h-4 w-4" /> Обучение ({trainings.length})
@@ -115,7 +122,7 @@ export function ProfileView({
         <TabsContent value="setups" className="mt-6 space-y-4">
           {purchases.length === 0 && (
             <Card className="border-dashed border-border/70 bg-card/50 p-10 text-center">
-              <p className="text-muted-foreground">Вы ещё не покупали сетапы.</p>
+              <p className="text-muted-foreground">Вы ещё не покупали сетапы и паки.</p>
               <Button asChild className="mx-auto mt-4 w-fit bg-white text-black hover:bg-white/85">
                 <Link href="/catalog">В каталог</Link>
               </Button>
@@ -126,10 +133,15 @@ export function ProfileView({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold">
-                    {order.setup?.track.flag} {order.setup?.track.name}
+                    {order.setup
+                      ? `${order.setup.track.flag} ${order.setup.track.name}`
+                      : order.pack?.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {typeLabel(order.setup?.type ?? '')} · {new Date(order.createdAt).toLocaleDateString('ru-RU')} ·{' '}
+                    {order.setup
+                      ? `Пилот · ${order.setup.pilot}`
+                      : `Пак · ${order.pack?.pilot} · ${order.pack?.tracksCount ?? 0} трасс`}{' '}
+                    · {new Date(order.createdAt).toLocaleDateString('ru-RU')} ·{' '}
                     {order.amount.toFixed(0)} ₽
                   </p>
                 </div>
@@ -145,10 +157,15 @@ export function ProfileView({
                 </div>
               </div>
 
-              {order.status === 'paid' && order.setup?.data ? (
+              {order.status === 'paid' && order.setup ? (
                 <div className="mt-5">
-                  <SetupValues data={order.setup.data} />
+                  <SetupVariants owned preview={{}} variants={order.setup.variants} />
                 </div>
+              ) : order.status === 'paid' && order.pack ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Пак открыт: все {order.pack.tracksCount} трасс доступны в каталоге со всеми
+                  вариантами настроек.
+                </p>
               ) : (
                 <p className="mt-4 text-sm text-muted-foreground">
                   Параметры сетапа откроются сразу после подтверждения оплаты.

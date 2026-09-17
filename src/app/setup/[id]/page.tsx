@@ -1,111 +1,103 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Flag, Gauge, ShieldCheck, TrendingUp } from 'lucide-react'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { SetupValues } from '@/components/setup-values'
-import { BuyPanel } from '@/components/buy-panel'
-import { packLabel, typeLabel, type SetupData } from '@/lib/f1-data'
 import { parseJson } from '@/lib/api'
+import { ownsSetup } from '@/lib/ownership'
 import { availableProviders } from '@/lib/payments'
 import { getPaymentSettings } from '@/lib/settings'
+import { BuyPanel } from '@/components/buy-panel'
+import { SetupVariants } from '@/components/setup-variants'
+import { conditionLabel, packLabel, type SetupData } from '@/lib/f1-data'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SetupPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const [setup, user] = await Promise.all([
-    db.setup.findUnique({ where: { id }, include: { track: true } }),
+    db.setup.findUnique({
+      where: { id },
+      include: { track: true, pilot: true, variants: { orderBy: { order: 'asc' } } },
+    }),
     getCurrentUser(),
   ])
   if (!setup || (!setup.active && user?.role !== 'admin')) notFound()
 
-  const owned =
-    user?.role === 'admin' ||
-    (user
-      ? Boolean(await db.order.findFirst({ where: { userId: user.id, setupId: setup.id, status: 'paid' } }))
-      : false)
-
+  const owned = user?.role === 'admin' || (await ownsSetup(user?.id, setup.id))
   const [providers, payments] = await Promise.all([availableProviders(), getPaymentSettings()])
 
-  const full = parseJson<Partial<SetupData>>(setup.data, {})
-  const preview = parseJson<Partial<SetupData>>(setup.previewData, {})
+  const packs = await db.pack.findMany({
+    where: { active: true, pilotId: setup.pilotId, setups: { some: { setupId: setup.id } } },
+    include: { pilot: true, _count: { select: { setups: true } } },
+    take: 2,
+  })
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
-      <Button asChild variant="ghost" size="sm" className="mb-6 text-muted-foreground">
-        <Link href="/catalog">
-          <ArrowLeft className="mr-1.5 h-4 w-4" /> Назад в каталог
-        </Link>
-      </Button>
+    <div className="mx-auto max-w-5xl px-4 py-12">
+      <Link href="/catalog" className="f1-eyebrow text-white/50 transition-colors hover:text-white">
+        ← Назад в каталог
+      </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="mt-8 text-center">
+        <p className="f1-eyebrow text-white/45">
+          {packLabel(setup.pack)} · {setup.track.country}
+          {setup.track.round > 0 ? ` · этап ${setup.track.round}` : ''}
+        </p>
+        <h1 className="f1-title mt-4 text-[clamp(1.4rem,3.6vw,2.6rem)] text-white">
+          {setup.track.flag} {setup.track.name}
+        </h1>
+        <p className="mt-3 text-white/60">
+          Пилот · {setup.pilot.name}
+          {setup.pilot.title ? ` — ${setup.pilot.title}` : ''}
+        </p>
+        <p className="mt-2 text-sm text-white/45">
+          В комплекте: {setup.variants.map((v) => v.title || conditionLabel(v.condition)).join(' · ')}
+          {setup.track.laps > 0 ? ` · ${setup.track.laps} кругов · ${setup.track.lengthKm.toFixed(3)} км` : ''}
+        </p>
+      </div>
+
+      <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_320px]">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-white/20 uppercase">{packLabel(setup.pack)}</Badge>
-            <Badge className="bg-white text-black uppercase">{typeLabel(setup.type)}</Badge>
-            {setup.featured && <Badge variant="outline" className="border-amber-400/60 text-amber-300">Хит продаж</Badge>}
-          </div>
+          <p className="whitespace-pre-line text-white/70">{setup.description}</p>
 
-          <h1 className="f1-title mt-4 text-4xl leading-tight md:text-5xl">
-            {setup.track.flag} {setup.track.name}
-          </h1>
-          <p className="mt-2 text-lg text-muted-foreground">{setup.title}</p>
-
-          <div className="mt-6 flex flex-wrap gap-5 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <Flag className="h-4 w-4 text-white" /> {setup.track.country}
-            </span>
-            {setup.track.laps > 0 && (
-              <span className="inline-flex items-center gap-1.5">
-                <Gauge className="h-4 w-4 text-white" /> {setup.track.laps} кругов ·{' '}
-                {setup.track.lengthKm.toFixed(3)} км
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-white" /> {setup.sales} продаж
-            </span>
-          </div>
-
-          <Card className="mt-6 border-border/70 bg-card/70 p-6">
-            <h2 className="text-lg font-bold">Описание</h2>
-            <p className="mt-2 whitespace-pre-line text-muted-foreground">{setup.description}</p>
-          </Card>
-
-          <div className="mt-8">
-            <div className="flex items-center justify-between">
-              <h2 className="f1-title text-2xl">Параметры сетапа</h2>
-              {!owned && (
-                <span className="text-sm text-muted-foreground">Полные значения — после оплаты</span>
-              )}
-            </div>
-            <div className="mt-4">
-              <SetupValues data={owned ? full : preview} locked={!owned} />
+          <div className="mt-10">
+            <h2 className="f1-title text-lg text-white">Параметры машины</h2>
+            <div className="mt-5">
+              <SetupVariants
+                owned={owned}
+                preview={parseJson<Partial<SetupData>>(setup.previewData, {})}
+                variants={setup.variants.map((variant) => ({
+                  id: variant.id,
+                  condition: variant.condition,
+                  title: variant.title,
+                  notes: variant.notes,
+                  data: owned ? parseJson<Partial<SetupData>>(variant.data, {}) : null,
+                }))}
+              />
             </div>
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-24 lg:h-fit">
+        <div className="lg:sticky lg:top-40 lg:h-fit">
           <BuyPanel
-            setup={{ id: setup.id, title: setup.title, price: setup.price, oldPrice: setup.oldPrice }}
+            kind="setup"
+            item={{ id: setup.id, title: setup.track.name, price: setup.price, oldPrice: setup.oldPrice }}
             owned={owned}
             authorized={Boolean(user)}
             providers={providers}
             manualInstructions={payments.manual.instructions}
           />
-          <Card className="mt-4 border-border/70 bg-card/70 p-5 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 font-semibold text-foreground">
-              <ShieldCheck className="h-4 w-4 text-white" /> Что вы получаете
+
+          {packs.length > 0 && !owned && (
+            <div className="mt-6 border border-white/10 p-5 text-sm">
+              <p className="f1-eyebrow text-white/45">Дешевле в паке</p>
+              {packs.map((pack) => (
+                <Link key={pack.id} href={`/pack/${pack.id}`} className="mt-3 block text-white/75 hover:text-white">
+                  {pack.title} — {pack._count.setups} трасс за {pack.price.toFixed(0)} ₽
+                </Link>
+              ))}
             </div>
-            <ul className="mt-3 space-y-1.5">
-              <li>• Полные 21 параметр настройки машины</li>
-              <li>• Доступ навсегда в личном кабинете</li>
-              <li>• Обновление сетапа при патчах игры</li>
-            </ul>
-          </Card>
+          )}
         </div>
       </div>
     </div>

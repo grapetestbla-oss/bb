@@ -10,7 +10,13 @@ export async function GET(request: Request) {
     const status = new URL(request.url).searchParams.get('status')
     const orders = await db.order.findMany({
       where: status ? { status } : {},
-      include: { user: true, setup: { include: { track: true } }, plan: true, training: true },
+      include: {
+        user: true,
+        setup: { include: { track: true, pilot: true } },
+        packSet: { include: { pilot: true } },
+        plan: true,
+        training: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 200,
     })

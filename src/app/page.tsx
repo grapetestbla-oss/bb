@@ -1,35 +1,47 @@
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { SetupCard } from '@/components/setup-card'
+import { PackCard } from '@/components/pack-card'
+import { getOwnedSetupIds } from '@/lib/ownership'
+import { getCurrentUser } from '@/lib/auth'
 import { parseJson } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
 const CREDENTIALS = [
-  '🏆 Сетапы, проверенные в онлайн-лигах и тайм-триале',
+  '🏁 Один сетап на трассу: сухо и дождь в одном товаре',
   '🏎️ Все трассы F1 25 и 2026 Season Pack',
-  '🛠️ Обновление после каждого патча игры',
+  '👤 Паки от разных пилотов — выбирайте почерк под себя',
   '🎓 Личное обучение с разбором телеметрии',
 ]
 
 export default async function HomePage() {
-  const [tracksCount, setupsCount, featured, s2026, plans] = await Promise.all([
+  const user = await getCurrentUser()
+  const [tracksCount, setupsCount, pilotsCount, packs, featured, plans] = await Promise.all([
     db.track.count({ where: { active: true } }),
     db.setup.count({ where: { active: true } }),
-    db.setup.findMany({
-      where: { active: true, pack: 'f125' },
-      include: { track: true },
+    db.pilot.count({ where: { active: true } }),
+    db.pack.findMany({
+      where: { active: true },
+      include: { pilot: true, _count: { select: { setups: true } } },
+      orderBy: [{ featured: 'desc' }, { order: 'asc' }],
       take: 3,
-      orderBy: [{ featured: 'desc' }, { sales: 'desc' }],
     }),
     db.setup.findMany({
-      where: { active: true, pack: 's2026' },
-      include: { track: true },
-      take: 3,
+      where: { active: true },
+      include: { track: true, pilot: true, variants: { orderBy: { order: 'asc' } } },
       orderBy: [{ featured: 'desc' }, { sales: 'desc' }],
+      take: 30,
     }),
     db.trainingPlan.findMany({ where: { active: true }, orderBy: { order: 'asc' }, take: 3 }),
   ])
+
+  const owned = await getOwnedSetupIds(user?.id)
+
+  // на главной показываем разные трассы, а не одну трассу от каждого пилота
+  const highlights = featured
+    .filter((setup, index, all) => all.findIndex((s) => s.trackId === setup.trackId) === index)
+    .slice(0, 3)
 
   return (
     <>
@@ -47,16 +59,13 @@ export default async function HomePage() {
         <div
           aria-hidden
           className="absolute inset-x-0 top-[24%] -z-10 h-14 opacity-35 blur-[18px]"
-          style={{
-            background: 'repeating-linear-gradient(90deg, #cfcfcf 0 70px, #8e2622 70px 140px)',
-          }}
+          style={{ background: 'repeating-linear-gradient(90deg, #cfcfcf 0 70px, #8e2622 70px 140px)' }}
         />
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 -z-10 h-1/2 opacity-50 blur-[3px]"
           style={{
-            background:
-              'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 9px)',
+            background: 'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 9px)',
           }}
         />
 
@@ -73,37 +82,76 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* О МАСТЕРСКОЙ */}
+      {/* О МАГАЗИНЕ */}
       <section className="border-t border-white/10">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center md:py-20">
-          <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Собрано Fantastiqueboy</h2>
+          <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Как это устроено</h2>
           <ul className="mt-8 flex flex-col gap-3 text-white/75">
             {CREDENTIALS.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
           <p className="mx-auto mt-8 max-w-xl text-white/60">
-            Каждый сетап на этом сайте собран, протестирован и обновляется в течение сезона.
-            Сейчас в каталоге {setupsCount} сетапов на {tracksCount} трассах.
+            Квалификацию и гонку мы не разделяем — настройки под них почти совпадают. Покупаете
+            трассу и получаете оба варианта: сухо и дождь. Сейчас в каталоге {setupsCount} сетапов на{' '}
+            {tracksCount} трассах от {pilotsCount} пилотов.
           </p>
         </div>
       </section>
 
-      {/* ПАКЕТЫ F1 25 */}
-      <Showcase
-        title="Сетапы F1 25"
-        href="/catalog?pack=f125"
-        linkLabel="Все сетапы F1 25"
-        items={featured}
-      />
+      {/* ПАКИ ПИЛОТОВ */}
+      {packs.length > 0 && (
+        <section className="border-t border-white/10">
+          <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
+            <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">
+              Паки пилотов
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-center text-sm text-white/55">
+              Все трассы одного пилота одной покупкой — дешевле, чем брать сетапы по отдельности.
+            </p>
+            <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              {packs.map((pack) => (
+                <PackCard
+                  key={pack.id}
+                  pack={{ ...pack, tracksCount: pack._count.setups }}
+                />
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <Link
+                href="/packs"
+                className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+              >
+                Все паки
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
-      {/* 2026 SEASON PACK */}
-      <Showcase
-        title="2026 Season Pack"
-        href="/catalog?pack=s2026"
-        linkLabel="Все сетапы 2026"
-        items={s2026}
-      />
+      {/* ОТДЕЛЬНЫЕ ТРАССЫ */}
+      {highlights.length > 0 && (
+        <section className="border-t border-white/10">
+          <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
+            <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">
+              Сетапы по трассам
+            </h2>
+            <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              {highlights.map((setup) => (
+                <SetupCard key={setup.id} setup={{ ...setup, owned: owned.has(setup.id) }} />
+              ))}
+            </div>
+            <div className="mt-10 text-center">
+              <Link
+                href="/catalog"
+                className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+              >
+                Весь каталог
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ОБУЧЕНИЕ */}
       <section className="border-t border-white/10">
@@ -143,49 +191,12 @@ export default async function HomePage() {
         <div className="mx-auto max-w-3xl px-4 py-16 text-center md:py-20">
           <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Полная прозрачность</h2>
           <p className="mt-6 text-white/65">
-            Параметры сетапа — 21 значение — открываются в личном кабинете сразу после оплаты и
-            остаются там навсегда. До покупки видны только антикрылья и баланс тормозов, чтобы вы
-            понимали характер настройки.
+            Параметры сетапа — 21 значение на каждый вариант — открываются в личном кабинете сразу
+            после оплаты и остаются там навсегда. До покупки видны только антикрылья и баланс
+            тормозов, чтобы вы понимали характер настройки.
           </p>
         </div>
       </section>
     </>
-  )
-}
-
-type ShowcaseItem = Parameters<typeof SetupCard>[0]['setup']
-
-function Showcase({
-  title,
-  href,
-  linkLabel,
-  items,
-}: {
-  title: string
-  href: string
-  linkLabel: string
-  items: ShowcaseItem[]
-}) {
-  if (!items.length) return null
-
-  return (
-    <section className="border-t border-white/10">
-      <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
-        <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">{title}</h2>
-        <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((setup) => (
-            <SetupCard key={setup.id} setup={setup} />
-          ))}
-        </div>
-        <div className="mt-10 text-center">
-          <Link
-            href={href}
-            className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
-          >
-            {linkLabel}
-          </Link>
-        </div>
-      </div>
-    </section>
   )
 }

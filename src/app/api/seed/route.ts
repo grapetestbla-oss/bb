@@ -18,8 +18,14 @@ function seededValue(slug: string, salt: number, min: number, max: number, step 
   return Number(value.toFixed(2))
 }
 
-function buildSetup(slug: string, type: 'qualifying' | 'race' | 'wet'): SetupData {
-  const downforceBias = type === 'wet' ? 10 : type === 'race' ? 3 : 0
+function buildSetup(
+  slug: string,
+  condition: 'dry' | 'wet',
+  style: 'balanced' | 'aggressive' | 'stable'
+): SetupData {
+  const downforceBias = condition === 'wet' ? 10 : style === 'aggressive' ? 0 : 3
+  const stiffness = style === 'stable' ? -4 : style === 'aggressive' ? 4 : 0
+  const type = condition
   return {
     ...EMPTY_SETUP,
     frontWing: Math.min(50, seededValue(slug, 1, 8, 42) + downforceBias),
@@ -31,8 +37,8 @@ function buildSetup(slug: string, type: 'qualifying' | 'race' | 'wet'): SetupDat
     rearCamber: seededValue(slug, 7, -2.0, -1.0, 0.1),
     frontToe: seededValue(slug, 8, 0.0, 0.2, 0.01),
     rearToe: seededValue(slug, 9, 0.1, 0.4, 0.01),
-    frontSuspension: seededValue(slug, 10, 1, 41),
-    rearSuspension: seededValue(slug, 11, 1, 41),
+    frontSuspension: Math.max(1, Math.min(41, seededValue(slug, 10, 1, 41) + stiffness)),
+    rearSuspension: Math.max(1, Math.min(41, seededValue(slug, 11, 1, 41) + stiffness)),
     frontAntiRoll: seededValue(slug, 12, 1, 21),
     rearAntiRoll: seededValue(slug, 13, 1, 21),
     frontRideHeight: seededValue(slug, 14, 20, 40),
@@ -46,27 +52,37 @@ function buildSetup(slug: string, type: 'qualifying' | 'race' | 'wet'): SetupDat
   }
 }
 
-const TEMPLATES = [
+/// Пилоты — авторы сетапов. У каждого свой почерк настройки.
+const PILOTS = [
   {
-    type: 'qualifying' as const,
-    title: 'Квалификационный сетап',
-    price: 149,
-    description:
-      'Максимум скорости на один круг: агрессивная аэродинамика, острый перед и настройки под мягкую резину. Идеально для борьбы за поул.',
-  },
-  {
-    type: 'race' as const,
-    title: 'Гоночный сетап',
+    slug: 'fantasticqueboy',
+    name: 'Fantastiqueboy',
+    title: 'Владелец магазина · тренер',
+    bio: 'Сетапы под стабильный темп в гонке: машина предсказуема на торможениях и бережёт резину.',
+    contact: '@fantasticqueboy',
+    order: 1,
+    style: 'balanced' as const,
     price: 199,
-    description:
-      'Баланс темпа и износа резины на длинной дистанции. Стабильная машина на торможениях и предсказуемая на выходе из поворотов.',
   },
   {
-    type: 'wet' as const,
-    title: 'Дождевой сетап',
+    slug: 'kolya',
+    name: 'Коля',
+    title: 'Пилот лиги · квалификационный специалист',
+    bio: 'Острый перед и максимум скорости на один круг. Требует аккуратной работы с газом.',
+    contact: '@kolya',
+    order: 2,
+    style: 'aggressive' as const,
+    price: 219,
+  },
+  {
+    slug: 'pad-master',
+    name: 'Pad Master',
+    title: 'Пилот на геймпаде',
+    bio: 'Настройки под геймпад: мягкая подвеска, меньше отзывчивости на входе, больше контроля.',
+    contact: '@padmaster',
+    order: 3,
+    style: 'stable' as const,
     price: 179,
-    description:
-      'Повышенная прижимная сила, мягкая подвеска и сниженное давление тормозов — контроль на мокрой трассе и в смешанных условиях.',
   },
 ]
 
@@ -95,38 +111,111 @@ export async function POST() {
       })
     }
 
-    // 3. Сетапы для каждой трассы
+    // 3. Пилоты
+    type SeededPilot = { id: string; slug: string; name: string; order: number } & {
+      style: 'balanced' | 'aggressive' | 'stable'
+      price: number
+    }
+    const pilots: SeededPilot[] = []
+    for (const pilot of PILOTS) {
+      const { style, price, ...fields } = pilot
+      const row = await db.pilot.upsert({
+        where: { slug: pilot.slug },
+        update: fields,
+        create: fields,
+      })
+      pilots.push({ ...row, style, price })
+    }
+
+    // 4. Сетапы: один товар на трассу от каждого пилота, внутри сухо и дождь
     const tracks = await db.track.findMany()
     let created = 0
     for (const track of tracks) {
-      for (const template of TEMPLATES) {
+      for (const pilot of pilots) {
         const exists = await db.setup.findFirst({
-          where: { trackId: track.id, type: template.type },
+          where: { trackId: track.id, pilotId: pilot.id },
         })
         if (exists) continue
-        const data = buildSetup(track.slug, template.type)
+
+        const dry = buildSetup(track.slug, 'dry', pilot.style)
+        const wet = buildSetup(track.slug, 'wet', pilot.style)
+
         await db.setup.create({
           data: {
             trackId: track.id,
-            title: `${template.title} — ${track.name}`,
-            type: template.type,
+            pilotId: pilot.id,
+            title: `${track.name} — ${pilot.name}`,
             pack: track.pack === 's2026' ? 's2026' : 'f125',
-            price: track.pack === 's2026' ? template.price + 50 : template.price,
-            description: template.description,
-            data: JSON.stringify(data),
+            price: track.pack === 's2026' ? pilot.price + 50 : pilot.price,
+            description:
+              `Сетап на ${track.name} от ${pilot.name}. В комплекте настройки на сухую трассу ` +
+              '(подходят и для квалификации, и для гонки) и отдельный вариант на дождь.',
             previewData: JSON.stringify({
-              frontWing: data.frontWing,
-              rearWing: data.rearWing,
-              brakeBias: data.brakeBias,
+              frontWing: dry.frontWing,
+              rearWing: dry.rearWing,
+              brakeBias: dry.brakeBias,
             }),
-            featured: track.round <= 3 && template.type === 'race',
+            featured: track.round <= 2,
+            variants: {
+              create: [
+                {
+                  condition: 'dry',
+                  title: 'Сухая трасса',
+                  notes: 'Квалификация и гонка: разница только в уровне топлива и режиме мотора.',
+                  data: JSON.stringify(dry),
+                  order: 0,
+                },
+                {
+                  condition: 'wet',
+                  title: 'Дождь',
+                  notes: 'Больше прижимной силы, выше клиренс, мягче тормоза.',
+                  data: JSON.stringify(wet),
+                  order: 1,
+                },
+              ],
+            },
           },
         })
         created += 1
       }
     }
 
-    // 4. Программы обучения
+    // 5. Паки: все сетапы пилота по игре одной покупкой
+    let packsCreated = 0
+    for (const pilot of pilots) {
+      for (const game of ['f125', 's2026'] as const) {
+        const slug = `${pilot.slug}-${game}`
+        const exists = await db.pack.findUnique({ where: { slug } })
+        if (exists) continue
+
+        const setups = await db.setup.findMany({
+          where: { pilotId: pilot.id, pack: game },
+          select: { id: true },
+        })
+        if (!setups.length) continue
+
+        const full = setups.reduce((sum) => sum + pilot.price, 0)
+        await db.pack.create({
+          data: {
+            slug,
+            title: `${pilot.name} — полный пак ${game === 'f125' ? 'F1 25' : '2026'}`,
+            description:
+              `Все ${setups.length} трасс от ${pilot.name}: сухо и дождь на каждой. ` +
+              'Обновляется в течение сезона, доступ навсегда.',
+            pilotId: pilot.id,
+            game,
+            price: Math.round((full * 0.45) / 10) * 10,
+            oldPrice: full,
+            featured: game === 'f125',
+            order: pilot.order,
+            setups: { create: setups.map((setup) => ({ setupId: setup.id })) },
+          },
+        })
+        packsCreated += 1
+      }
+    }
+
+    // 6. Программы обучения
     const plans = [
       {
         title: 'Разбор пилотажа',
@@ -161,7 +250,7 @@ export async function POST() {
       })
     }
 
-    // 5. Настройки по умолчанию
+    // 7. Настройки по умолчанию
     const hasPayments = await db.setting.findUnique({ where: { key: 'payments' } })
     if (!hasPayments) await setSetting('payments', DEFAULT_PAYMENTS)
     const hasSite = await db.setting.findUnique({ where: { key: 'site' } })
@@ -170,8 +259,10 @@ export async function POST() {
     return ok({
       success: true,
       admin: admin.login,
+      pilots: pilots.length,
       tracks: tracks.length,
       setupsCreated: created,
+      packsCreated,
     })
   } catch (error) {
     return handleError(error)

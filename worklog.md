@@ -5,7 +5,8 @@
 
 ## Архитектура
 - **Next.js 16 App Router**, серверные компоненты для страниц, клиентские — для форм и панели.
-- **Prisma + SQLite**: User, Track, Setup, TrainingPlan, Order, TrainingRequest, Notification, Setting.
+- **Prisma + SQLite**: User, Pilot, Track, Setup, SetupVariant, Pack, PackSetup, TrainingPlan,
+  Order, TrainingRequest, Notification, Setting.
 - **Авторизация**: собственная сессия в httpOnly-cookie, подписанной HMAC-SHA256 (`src/lib/auth.ts`),
   пароли — bcrypt.
 - **Платежи**: `src/lib/payments.ts` — FreeKassa (подпись md5), Platega (API + webhook),
@@ -19,9 +20,16 @@
   payment-picker, catalog-view, training-view, profile-view, auth-form, `admin/*`.
 - `src/lib/` — auth, db, api, settings, payments, orders, f1-data (трассы и параметры сетапа).
 
+## Модель товара
+- Товар — трасса от конкретного пилота. Квалификация и гонка не разделяются: разница между ними
+  сводится к топливу и режиму мотора. Внутри товара варианты по условиям: сухо и дождь.
+- Тайм-триал не продаётся: такие сетапы лежат в открытом доступе.
+- Пак — набор сетапов одного пилота по игре; оплата пака открывает все входящие сетапы
+  (см. `src/lib/ownership.ts`).
+
 ## Данные
 - 26 трасс F1 25 (24 этапа сезона 2025 + Portimão и Paul Ricard) и 8 трасс 2026 Season Pack.
-- Для каждой трассы сидируются 3 сетапа: квалификация, гонка, дождь (21 параметр каждый).
+- 3 пилота с разным почерком настройки, 102 сетапа (по 2 варианта каждый), 6 паков.
 - 3 программы обучения.
 - Администратор: `fantasticqueboy` / `fantasticqueboy` (меняется в профиле).
 

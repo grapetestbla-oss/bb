@@ -4,18 +4,22 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Bell,
+  Boxes,
   CreditCard,
   Flag,
   GraduationCap,
   LayoutDashboard,
   Package,
   ShoppingBag,
+  UserCog,
   Users,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { AdminSetups } from '@/components/admin/admin-setups'
+import { AdminPilots } from '@/components/admin/admin-pilots'
+import { AdminPacks } from '@/components/admin/admin-packs'
 import { AdminOrders } from '@/components/admin/admin-orders'
 import { AdminTrainings } from '@/components/admin/admin-trainings'
 import { AdminPlans } from '@/components/admin/admin-plans'
@@ -29,6 +33,8 @@ import type { AdminOrder } from '@/components/admin/types'
 type Stats = {
   users: number
   setups: number
+  packs: number
+  pilots: number
   tracks: number
   paidOrders: number
   pendingOrders: number
@@ -84,6 +90,8 @@ export function AdminPanel({ user }: { user: SessionUser }) {
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview"><LayoutDashboard className="mr-1.5 h-4 w-4" />Обзор</TabsTrigger>
           <TabsTrigger value="setups"><Package className="mr-1.5 h-4 w-4" />Сетапы</TabsTrigger>
+          <TabsTrigger value="packs"><Boxes className="mr-1.5 h-4 w-4" />Паки</TabsTrigger>
+          <TabsTrigger value="pilots"><UserCog className="mr-1.5 h-4 w-4" />Пилоты</TabsTrigger>
           <TabsTrigger value="tracks"><Flag className="mr-1.5 h-4 w-4" />Трассы</TabsTrigger>
           <TabsTrigger value="orders"><ShoppingBag className="mr-1.5 h-4 w-4" />Заказы</TabsTrigger>
           <TabsTrigger value="training"><GraduationCap className="mr-1.5 h-4 w-4" />Обучение</TabsTrigger>
@@ -101,6 +109,8 @@ export function AdminPanel({ user }: { user: SessionUser }) {
               { label: 'Новых заявок на обучение', value: stats?.newTrainings ?? 0 },
               { label: 'Пользователей', value: stats?.users ?? 0 },
               { label: 'Сетапов', value: stats?.setups ?? 0 },
+              { label: 'Паков', value: stats?.packs ?? 0 },
+              { label: 'Пилотов', value: stats?.pilots ?? 0 },
               { label: 'Трасс', value: stats?.tracks ?? 0 },
             ].map((item) => (
               <Card key={item.label} className="stripe-left gap-1 border-border/70 bg-card/80 p-5">
@@ -119,7 +129,9 @@ export function AdminPanel({ user }: { user: SessionUser }) {
                 <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
                   <span className="font-medium">{order.user.login}</span>
                   <span className="text-muted-foreground">
-                    {order.setup ? `${order.setup.track.flag} ${order.setup.title}` : order.plan?.title}
+                    {order.setup
+                      ? `${order.setup.track.flag} ${order.setup.track.name}`
+                      : order.packSet?.title ?? order.plan?.title}
                   </span>
                   <span className="font-mono">{order.amount.toFixed(0)} ₽</span>
                   <Badge variant="outline" className="border-white/20">{order.status}</Badge>
@@ -133,6 +145,8 @@ export function AdminPanel({ user }: { user: SessionUser }) {
         </TabsContent>
 
         <TabsContent value="setups" className="mt-6"><AdminSetups /></TabsContent>
+        <TabsContent value="packs" className="mt-6"><AdminPacks /></TabsContent>
+        <TabsContent value="pilots" className="mt-6"><AdminPilots /></TabsContent>
         <TabsContent value="tracks" className="mt-6"><AdminTracks /></TabsContent>
         <TabsContent value="orders" className="mt-6"><AdminOrders onChange={loadStats} /></TabsContent>
         <TabsContent value="training" className="mt-6 space-y-6">

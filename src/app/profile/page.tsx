@@ -15,7 +15,12 @@ export default async function ProfilePage() {
   const [orders, notifications] = await Promise.all([
     db.order.findMany({
       where: { userId: user.id },
-      include: { setup: { include: { track: true } }, plan: true, training: true },
+      include: {
+        setup: { include: { track: true, pilot: true, variants: { orderBy: { order: 'asc' } } } },
+        packSet: { include: { pilot: true, _count: { select: { setups: true } } } },
+        plan: true,
+        training: true,
+      },
       orderBy: { createdAt: 'desc' },
     }),
     db.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 30 }),
@@ -36,9 +41,24 @@ export default async function ProfilePage() {
           ? {
               id: order.setup.id,
               title: order.setup.title,
-              type: order.setup.type,
+              pilot: order.setup.pilot.name,
               track: { name: order.setup.track.name, flag: order.setup.track.flag },
-              data: order.status === 'paid' ? parseJson<Partial<SetupData>>(order.setup.data, {}) : null,
+              variants: order.setup.variants.map((variant) => ({
+                id: variant.id,
+                condition: variant.condition,
+                title: variant.title,
+                notes: variant.notes,
+                data:
+                  order.status === 'paid' ? parseJson<Partial<SetupData>>(variant.data, {}) : null,
+              })),
+            }
+          : null,
+        pack: order.packSet
+          ? {
+              id: order.packSet.id,
+              title: order.packSet.title,
+              pilot: order.packSet.pilot.name,
+              tracksCount: order.packSet._count.setups,
             }
           : null,
         plan: order.plan ? { title: order.plan.title, duration: order.plan.duration } : null,

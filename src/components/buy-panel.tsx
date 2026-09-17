@@ -4,20 +4,20 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { CheckCircle2, CreditCard, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Loader2 } from 'lucide-react'
 import { PaymentPicker } from '@/components/payment-picker'
 import type { PaymentProvider } from '@/lib/payments'
 
 export function BuyPanel({
-  setup,
+  kind,
+  item,
   owned,
   authorized,
   providers,
   manualInstructions,
 }: {
-  setup: { id: string; title: string; price: number; oldPrice: number | null }
+  kind: 'setup' | 'pack'
+  item: { id: string; title: string; price: number; oldPrice: number | null }
   owned: boolean
   authorized: boolean
   providers: PaymentProvider[]
@@ -33,7 +33,11 @@ export function BuyPanel({
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: 'setup', setupId: setup.id, provider }),
+        body: JSON.stringify({
+          kind,
+          ...(kind === 'pack' ? { packId: item.id } : { setupId: item.id }),
+          provider,
+        }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Не удалось создать заказ')
@@ -57,33 +61,33 @@ export function BuyPanel({
 
   if (owned) {
     return (
-      <Card className="border-emerald-500/40 bg-emerald-500/5 p-6">
-        <div className="flex items-center gap-2 text-emerald-400">
-          <CheckCircle2 className="h-5 w-5" />
-          <span className="font-bold uppercase">Сетап уже ваш</span>
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Полные параметры открыты на этой странице и в личном кабинете.
+      <div className="border border-white/20 p-6 text-center">
+        <p className="f1-eyebrow text-white">Уже ваш</p>
+        <p className="mt-3 text-sm text-white/60">
+          Все параметры открыты на этой странице и в личном кабинете.
         </p>
-        <Button asChild variant="outline" className="mt-4 w-full">
-          <Link href="/profile">Мои покупки</Link>
-        </Button>
-      </Card>
+        <Link
+          href="/profile"
+          className="f1-eyebrow mt-5 inline-block border border-white/25 px-6 py-3 text-white transition-colors hover:bg-white hover:text-black"
+        >
+          Мои покупки
+        </Link>
+      </div>
     )
   }
 
   return (
-    <Card className="border-border/70 bg-card/80 p-6">
+    <div className="border border-white/15 p-6">
       <div className="flex items-baseline gap-3">
-        <span className="f1-title text-4xl">{setup.price.toFixed(0)} ₽</span>
-        {setup.oldPrice ? (
-          <span className="text-lg text-muted-foreground line-through">{setup.oldPrice.toFixed(0)} ₽</span>
+        <span className="f1-title text-3xl text-white">{item.price.toFixed(0)} ₽</span>
+        {item.oldPrice ? (
+          <span className="text-white/35 line-through">{item.oldPrice.toFixed(0)} ₽</span>
         ) : null}
       </div>
 
       {authorized ? (
         <>
-          <div className="mt-5">
+          <div className="mt-6">
             <PaymentPicker
               providers={providers}
               value={provider}
@@ -91,30 +95,35 @@ export function BuyPanel({
               manualInstructions={manualInstructions}
             />
           </div>
-          <Button
+          <button
+            type="button"
             onClick={buy}
             disabled={loading}
-            size="lg"
-            className="mt-5 w-full bg-white text-black hover:bg-white/85"
+            className="f1-eyebrow mt-6 flex w-full items-center justify-center gap-2 bg-white px-6 py-4 text-black transition-opacity hover:opacity-85 disabled:opacity-60"
           >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-            Купить сетап
-          </Button>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {kind === 'pack' ? 'Купить пак' : 'Купить сетап'}
+          </button>
         </>
       ) : (
         <>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Чтобы купить сетап, войдите в аккаунт или зарегистрируйтесь — покупки хранятся в личном
-            кабинете.
+          <p className="mt-4 text-sm text-white/60">
+            Покупки хранятся в личном кабинете — войдите или создайте аккаунт.
           </p>
-          <Button asChild size="lg" className="mt-4 w-full bg-white text-black hover:bg-white/85">
-            <Link href="/register">Создать аккаунт</Link>
-          </Button>
-          <Button asChild variant="outline" className="mt-2 w-full">
-            <Link href="/login">У меня есть аккаунт</Link>
-          </Button>
+          <Link
+            href="/register"
+            className="f1-eyebrow mt-5 block bg-white px-6 py-4 text-center text-black transition-opacity hover:opacity-85"
+          >
+            Создать аккаунт
+          </Link>
+          <Link
+            href="/login"
+            className="f1-eyebrow mt-2 block border border-white/25 px-6 py-4 text-center text-white transition-colors hover:bg-white hover:text-black"
+          >
+            У меня есть аккаунт
+          </Link>
         </>
       )}
-    </Card>
+    </div>
   )
 }

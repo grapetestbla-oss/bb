@@ -7,9 +7,12 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     await requireAdmin()
-    const [users, setups, tracks, paidOrders, pendingOrders, newTrainings, revenue] = await Promise.all([
+    const [users, setups, packs, pilots, tracks, paidOrders, pendingOrders, newTrainings, revenue] =
+      await Promise.all([
       db.user.count(),
       db.setup.count(),
+      db.pack.count(),
+      db.pilot.count(),
       db.track.count(),
       db.order.count({ where: { status: 'paid' } }),
       db.order.count({ where: { status: 'pending' } }),
@@ -20,13 +23,15 @@ export async function GET() {
     const recent = await db.order.findMany({
       take: 8,
       orderBy: { createdAt: 'desc' },
-      include: { user: true, setup: { include: { track: true } }, plan: true },
+      include: { user: true, setup: { include: { track: true } }, packSet: true, plan: true },
     })
 
     return ok({
       stats: {
         users,
         setups,
+        packs,
+        pilots,
         tracks,
         paidOrders,
         pendingOrders,

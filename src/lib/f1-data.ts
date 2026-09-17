@@ -53,12 +53,14 @@ export const S2026_TRACKS: TrackSeed[] = [
 
 export const ALL_TRACKS = [...F1_25_TRACKS, ...S2026_TRACKS]
 
-export const SETUP_TYPES = [
-  { value: 'qualifying', label: 'Квалификация', color: 'text-violet-400' },
-  { value: 'race', label: 'Гонка', color: 'text-emerald-400' },
-  { value: 'wet', label: 'Дождь', color: 'text-sky-400' },
-  { value: 'timetrial', label: 'Тайм-триал', color: 'text-amber-400' },
+/// Условия внутри одного сетапа. Квалификация и гонка не разделяются —
+/// настройки под них почти совпадают, а тайм-триал лежит в открытом доступе.
+export const CONDITIONS = [
+  { value: 'dry', label: 'Сухо', hint: 'Квалификация и гонка' },
+  { value: 'wet', label: 'Дождь', hint: 'Дождь и смешанные условия' },
 ] as const
+
+export type Condition = (typeof CONDITIONS)[number]['value']
 
 export const PACKS = [
   { value: 'f125', label: 'F1 25' },
@@ -154,8 +156,17 @@ export const EMPTY_SETUP: SetupData = {
   rearLeftTyre: 23.5,
 }
 
-export const typeLabel = (value: string) =>
-  SETUP_TYPES.find((t) => t.value === value)?.label ?? value
+export const conditionLabel = (value: string) =>
+  CONDITIONS.find((c) => c.value === value)?.label ?? value
+
+export const GAMES = [
+  { value: 'f125', label: 'F1 25' },
+  { value: 's2026', label: '2026 Season Pack' },
+  { value: 'all', label: 'F1 25 + 2026' },
+] as const
+
+export const gameLabel = (value: string) =>
+  GAMES.find((g) => g.value === value)?.label ?? packLabel(value)
 export const packLabel = (value: string) =>
   PACKS.find((p) => p.value === value)?.label ?? (value === 'classic' ? 'Классика' : value)
 export const platformLabel = (value: string) =>

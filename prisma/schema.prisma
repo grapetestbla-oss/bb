@@ -23,6 +23,22 @@ model User {
   notifications    Notification[]    @relation("UserNotifications")
 }
 
+model Pilot {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  title     String   @default("") // регалии: «чемпион лиги», «тренер»
+  bio       String   @default("")
+  contact   String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  setups Setup[]
+  packs  Pack[]
+}
+
 model Track {
   id        String   @id @default(cuid())
   slug      String   @unique
@@ -40,17 +56,17 @@ model Track {
   setups Setup[]
 }
 
+/// Товар — сетап на трассу от конкретного пилота.
+/// Гонка и квалификация не разделяются: внутри лежат варианты по условиям.
 model Setup {
   id          String   @id @default(cuid())
   trackId     String
+  pilotId     String
   title       String
-  type        String   @default("race") // qualifying | race | wet | timetrial
   pack        String   @default("f125") // f125 | s2026
   price       Float    @default(0)
   oldPrice    Float?
   description String   @default("")
-  // Параметры сетапа (выдаются после оплаты)
-  data        String   @default("{}") // JSON с настройками
   previewData String   @default("{}") // JSON: что видно до покупки
   sales       Int      @default(0)
   featured    Boolean  @default(false)
@@ -58,8 +74,60 @@ model Setup {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  track  Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  track    Track          @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  pilot    Pilot          @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  variants SetupVariant[]
+  packs    PackSetup[]
+  orders   Order[]
+
+  @@unique([trackId, pilotId])
+}
+
+/// Вариант сетапа внутри товара: сухо или дождь.
+model SetupVariant {
+  id        String   @id @default(cuid())
+  setupId   String
+  condition String   @default("dry") // dry | wet
+  title     String   @default("")
+  notes     String   @default("")
+  data      String   @default("{}") // JSON с настройками, выдаётся после оплаты
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  setup Setup @relation(fields: [setupId], references: [id], onDelete: Cascade)
+}
+
+/// Пак — набор сетапов одного пилота, продаётся одной покупкой.
+model Pack {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @default("")
+  pilotId     String
+  game        String   @default("f125") // f125 | s2026 | all
+  price       Float    @default(0)
+  oldPrice    Float?
+  sales       Int      @default(0)
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pilot  Pilot       @relation(fields: [pilotId], references: [id], onDelete: Cascade)
+  setups PackSetup[]
   orders Order[]
+}
+
+model PackSetup {
+  packId  String
+  setupId String
+
+  pack  Pack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  setup Setup @relation(fields: [setupId], references: [id], onDelete: Cascade)
+
+  @@id([packId, setupId])
 }
 
 model TrainingPlan {
@@ -78,41 +146,43 @@ model TrainingPlan {
 }
 
 model Order {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  kind       String   @default("setup") // setup | training
+  kind       String    @default("setup") // setup | pack | training
   setupId    String?
+  packId     String?
   planId     String?
-  amount     Float    @default(0)
-  status     String   @default("pending") // pending | paid | cancelled
+  amount     Float     @default(0)
+  status     String    @default("pending") // pending | paid | cancelled
   provider   String? // freekassa | platega | manual
   externalId String?
   payUrl     String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   paidAt     DateTime?
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime  @updatedAt
 
   user     User             @relation("UserOrders", fields: [userId], references: [id], onDelete: Cascade)
   setup    Setup?           @relation(fields: [setupId], references: [id])
+  packSet  Pack?            @relation(fields: [packId], references: [id])
   plan     TrainingPlan?    @relation(fields: [planId], references: [id])
   training TrainingRequest?
 }
 
 model TrainingRequest {
-  id        String   @id @default(cuid())
-  orderId   String   @unique
-  userId    String
-  contactType String @default("telegram") // telegram | discord
-  contact   String
-  platform  String   @default("pc") // pc | ps | xbox
-  device    String   @default("wheel") // wheel | gamepad | keyboard
-  level     String   @default("") // уровень игрока
-  comment   String   @default("")
-  status    String   @default("new") // new | taken | done | cancelled
-  takenById String?
-  takenAt   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  orderId     String    @unique
+  userId      String
+  contactType String    @default("telegram") // telegram | discord
+  contact     String
+  platform    String    @default("pc") // pc | ps | xbox
+  device      String    @default("wheel") // wheel | gamepad | keyboard
+  level       String    @default("") // уровень игрока
+  comment     String    @default("")
+  status      String    @default("new") // new | taken | done | cancelled
+  takenById   String?
+  takenAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user    User  @relation("UserTrainings", fields: [userId], references: [id], onDelete: Cascade)
