@@ -132,7 +132,7 @@ export function AdminPlans() {
         </div>
         <Button
           size="sm"
-          className="bg-[#9d3f38] hover:bg-[#b34d44]"
+          className="bg-white text-black hover:bg-white/85"
           onClick={() => {
             setForm(empty)
             setOpen(true)
@@ -209,7 +209,7 @@ export function AdminPlans() {
             </label>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
-              <Button type="submit" disabled={saving} className="bg-[#9d3f38] hover:bg-[#b34d44]">
+              <Button type="submit" disabled={saving} className="bg-white text-black hover:bg-white/85">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Сохранить
               </Button>
             </div>

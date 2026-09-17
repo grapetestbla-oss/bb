@@ -43,11 +43,11 @@ export function PaymentPicker({
             type="button"
             onClick={() => onChange(provider)}
             className={cn(
-              'flex w-full items-center gap-3 rounded-md border border-border/70 px-3 py-2.5 text-left transition-colors hover:border-[#9d3f38]/60',
-              value === provider && 'border-[#9d3f38] bg-[#9d3f38]/10'
+              'flex w-full items-center gap-3 rounded-md border border-border/70 px-3 py-2.5 text-left transition-colors hover:border-white/40',
+              value === provider && 'border-white bg-white/5'
             )}
           >
-            <Icon className="h-4 w-4 text-[#9d3f38]" />
+            <Icon className="h-4 w-4 text-white" />
             <span className="flex-1">
               <span className="block text-sm font-semibold">{meta.label}</span>
               <span className="block text-xs text-muted-foreground">

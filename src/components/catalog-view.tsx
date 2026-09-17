@@ -92,10 +92,10 @@ export function CatalogView() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col items-center gap-4 text-center">
         <div>
-          <h1 className="f1-title text-4xl">Каталог сетапов</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="f1-title text-[clamp(1.5rem,4vw,2.4rem)]">Каталог сетапов</h1>
+          <p className="mt-3 text-sm text-white/55">
             {loading ? 'Загрузка…' : `${visible.length} сетапов на ${visibleTracks.length} трассах`}
           </p>
         </div>
@@ -110,9 +110,9 @@ export function CatalogView() {
         </div>
       </div>
 
-      <Card className="mt-6 gap-4 border-border/70 bg-card/70 p-5">
+      <Card className="mt-8 gap-4 rounded-none border-x-0 border-b-0 border-t border-white/10 bg-transparent p-0 pt-6">
         <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
-          <SlidersHorizontal className="h-4 w-4 text-[#9d3f38]" /> Фильтры
+          <SlidersHorizontal className="h-4 w-4 text-white" /> Фильтры
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -144,20 +144,20 @@ export function CatalogView() {
         </div>
 
         {(pack || type || track || search) && (
-          <Button variant="ghost" size="sm" className="w-fit text-[#9d3f38]" onClick={reset}>
+          <Button variant="ghost" size="sm" className="w-fit text-white" onClick={reset}>
             Сбросить фильтры
           </Button>
         )}
       </Card>
 
       {loading ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-72 w-full" />
           ))}
         </div>
       ) : visible.length ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((setup) => (
             <SetupCard key={setup.id} setup={setup} />
           ))}
@@ -188,8 +188,8 @@ function FilterChip({
       onClick={onClick}
       variant="outline"
       className={cn(
-        'cursor-pointer select-none border-border/70 px-3 py-1.5 text-xs font-medium transition-colors hover:border-[#9d3f38]/70',
-        active && 'border-[#9d3f38] bg-[#9d3f38]/15 text-[#d69a93]'
+        'cursor-pointer select-none border-border/70 px-3 py-1.5 text-xs font-medium transition-colors hover:border-white/70',
+        active && 'border-white bg-white/10 text-white'
       )}
     >
       {children}

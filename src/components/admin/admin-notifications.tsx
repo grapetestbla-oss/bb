@@ -52,13 +52,13 @@ export function AdminNotifications({ onChange }: { onChange?: () => void }) {
       {items.map((item) => (
         <Card
           key={item.id}
-          className={cn('border-border/70 bg-card/80 p-4', !item.read && 'border-[#9d3f38]/50 bg-[#9d3f38]/5')}
+          className={cn('border-border/70 bg-card/80 p-4', !item.read && 'border-white/30 bg-white/5')}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold">{item.title}</p>
-                {!item.read && <Badge className="bg-[#9d3f38] text-[10px] uppercase">Новое</Badge>}
+                {!item.read && <Badge className="bg-white text-black text-[10px] uppercase">Новое</Badge>}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
             </div>
@@ -67,7 +67,7 @@ export function AdminNotifications({ onChange }: { onChange?: () => void }) {
                 {new Date(item.createdAt).toLocaleString('ru-RU')}
               </span>
               {item.link && (
-                <Button asChild size="sm" variant="ghost" className="text-[#9d3f38]">
+                <Button asChild size="sm" variant="ghost" className="text-white">
                   <Link href={item.link}>Открыть</Link>
                 </Button>
               )}

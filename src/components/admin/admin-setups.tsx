@@ -183,7 +183,7 @@ export function AdminSetups() {
           placeholder="Поиск по названию или трассе"
           className="max-w-xs"
         />
-        <Button onClick={openCreate} className="ml-auto bg-[#9d3f38] hover:bg-[#b34d44]">
+        <Button onClick={openCreate} className="ml-auto bg-white text-black hover:bg-white/85">
           <Plus className="mr-1.5 h-4 w-4" /> Добавить сетап
         </Button>
       </div>
@@ -389,7 +389,7 @@ export function AdminSetups() {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Отмена
               </Button>
-              <Button type="submit" disabled={saving} className="bg-[#9d3f38] hover:bg-[#b34d44]">
+              <Button type="submit" disabled={saving} className="bg-white text-black hover:bg-white/85">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Сохранить
               </Button>

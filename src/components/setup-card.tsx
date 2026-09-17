@@ -1,12 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Gauge, ShoppingCart, TrendingUp } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { packLabel, SETUP_TYPES, typeLabel } from '@/lib/f1-data'
-import { cn } from '@/lib/utils'
+import { packLabel, typeLabel } from '@/lib/f1-data'
 
 export type SetupCardData = {
   id: string
@@ -23,65 +18,42 @@ export type SetupCardData = {
   track: { name: string; country: string; flag: string; slug: string }
 }
 
+/** Карточка в стиле витрины: плитка сверху, подпись по центру снизу. */
 export function SetupCard({ setup }: { setup: SetupCardData }) {
-  const typeColor = SETUP_TYPES.find((t) => t.value === setup.type)?.color ?? 'text-foreground'
-
   return (
-    <Card className="stripe-left card-hover relative flex h-full flex-col gap-0 overflow-hidden border-border/70 bg-card/80 p-0">
-      <div className="carbon flex items-center justify-between px-5 py-3">
-        <span className="text-2xl leading-none">{setup.track.flag}</span>
-        <div className="flex gap-1.5">
-          {setup.featured && (
-            <Badge className="bg-[#9d3f38] text-[10px] uppercase tracking-wide">Хит</Badge>
-          )}
-          <Badge variant="outline" className="border-white/20 text-[10px] uppercase">
-            {packLabel(setup.pack)}
-          </Badge>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">
+    <Link href={`/setup/${setup.id}`} className="group block text-center">
+      <div className="tile border border-white/10 transition-colors group-hover:border-white/35">
+        <span className="relative z-10 text-6xl leading-none drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]">
+          {setup.track.flag}
+        </span>
+        <span className="f1-eyebrow absolute left-3 top-3 z-10 text-[10px] text-white/40">
           {setup.track.country}
-        </p>
-        <h3 className="mt-1 line-clamp-2 text-base font-bold leading-snug">{setup.track.name}</h3>
-        <p className={cn('mt-2 text-sm font-semibold uppercase tracking-wide', typeColor)}>
+        </span>
+        <span className="f1-eyebrow absolute bottom-3 left-0 right-0 z-10 text-white/60">
           {typeLabel(setup.type)}
-        </p>
-        <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{setup.description}</p>
-
-        <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <TrendingUp className="h-3.5 w-3.5" /> {setup.sales} продаж
+        </span>
+        {setup.featured && (
+          <span className="f1-eyebrow absolute left-3 top-3 z-10 border border-white/30 px-2 py-0.5 text-[10px] text-white">
+            Хит
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Gauge className="h-3.5 w-3.5" /> 21 параметр
+        )}
+        {setup.owned && (
+          <span className="f1-eyebrow absolute right-3 top-3 z-10 border border-white/30 px-2 py-0.5 text-[10px] text-white">
+            Куплено
           </span>
-        </div>
-
-        <div className="mt-auto flex items-center justify-between pt-5">
-          <div>
-            {setup.owned ? (
-              <span className="text-sm font-bold uppercase text-emerald-400">Куплено</span>
-            ) : (
-              <div className="flex items-baseline gap-2">
-                <span className="f1-title text-2xl">{setup.price.toFixed(0)} ₽</span>
-                {setup.oldPrice ? (
-                  <span className="text-sm text-muted-foreground line-through">
-                    {setup.oldPrice.toFixed(0)} ₽
-                  </span>
-                ) : null}
-              </div>
-            )}
-          </div>
-          <Button asChild size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]">
-            <Link href={`/setup/${setup.id}`}>
-              <ShoppingCart className="mr-1.5 h-4 w-4" />
-              {setup.owned ? 'Открыть' : 'Купить'}
-            </Link>
-          </Button>
-        </div>
+        )}
       </div>
-    </Card>
+
+      <h3 className="f1-title mt-4 text-sm text-white">{setup.track.name}</h3>
+      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-white/45">
+        {setup.track.country} · {packLabel(setup.pack)}
+      </p>
+      <p className="mt-2 text-sm text-white/70">
+        {setup.owned ? 'Открыт в кабинете' : `${setup.price.toFixed(0)} ₽`}
+        {!setup.owned && setup.oldPrice ? (
+          <span className="ml-2 text-white/35 line-through">{setup.oldPrice.toFixed(0)} ₽</span>
+        ) : null}
+      </p>
+    </Link>
   )
 }

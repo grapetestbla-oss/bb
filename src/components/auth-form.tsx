@@ -89,7 +89,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full bg-[#9d3f38] hover:bg-[#b34d44]">
+          <Button type="submit" disabled={loading} className="w-full bg-white text-black hover:bg-white/85">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
           </Button>
@@ -99,14 +99,14 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           {mode === 'login' ? (
             <>
               Нет аккаунта?{' '}
-              <Link href="/register" className="text-[#9d3f38] hover:underline">
+              <Link href="/register" className="text-white hover:underline">
                 Зарегистрироваться
               </Link>
             </>
           ) : (
             <>
               Уже есть аккаунт?{' '}
-              <Link href="/login" className="text-[#9d3f38] hover:underline">
+              <Link href="/login" className="text-white hover:underline">
                 Войти
               </Link>
             </>

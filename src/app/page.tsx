@@ -1,192 +1,191 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Flag, GraduationCap, Timer, Trophy, Zap } from 'lucide-react'
 import { db } from '@/lib/db'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { SetupCard } from '@/components/setup-card'
+import { parseJson } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
+const CREDENTIALS = [
+  '🏆 Сетапы, проверенные в онлайн-лигах и тайм-триале',
+  '🏎️ Все трассы F1 25 и 2026 Season Pack',
+  '🛠️ Обновление после каждого патча игры',
+  '🎓 Личное обучение с разбором телеметрии',
+]
+
 export default async function HomePage() {
-  const [tracksCount, setupsCount, salesCount, featured, packs] = await Promise.all([
+  const [tracksCount, setupsCount, featured, s2026, plans] = await Promise.all([
     db.track.count({ where: { active: true } }),
     db.setup.count({ where: { active: true } }),
-    db.order.count({ where: { status: 'paid' } }),
     db.setup.findMany({
-      where: { active: true, featured: true },
+      where: { active: true, pack: 'f125' },
       include: { track: true },
-      take: 6,
-      orderBy: { sales: 'desc' },
+      take: 3,
+      orderBy: [{ featured: 'desc' }, { sales: 'desc' }],
     }),
-    db.track.groupBy({ by: ['pack'], _count: { _all: true } }),
+    db.setup.findMany({
+      where: { active: true, pack: 's2026' },
+      include: { track: true },
+      take: 3,
+      orderBy: [{ featured: 'desc' }, { sales: 'desc' }],
+    }),
+    db.trainingPlan.findMany({ where: { active: true }, orderBy: { order: 'asc' }, take: 3 }),
   ])
-
-  const fallback = featured.length
-    ? featured
-    : await db.setup.findMany({ where: { active: true }, include: { track: true }, take: 6 })
-
-  const packCount = (pack: string) => packs.find((p) => p.pack === pack)?._count._all ?? 0
 
   return (
     <>
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-border/70">
-        <div className="absolute inset-x-0 bottom-0 h-px speed-lines" />
-        <div className="absolute -left-40 top-10 h-80 w-80 rounded-full bg-[#9d3f38]/10 blur-[140px]" />
-        <div className="relative mx-auto max-w-7xl px-4 py-20 md:py-28">
-          <Badge className="mb-5 bg-[#9d3f38]/15 text-[#c98a82] uppercase tracking-widest">
-            F1 25 · 2026 Season Pack
-          </Badge>
-          <h1 className="f1-title max-w-4xl text-4xl leading-[1.05] md:text-6xl lg:text-7xl">
-            Сетапы, которые
-            <span className="text-[#c98a82]"> находят время</span>
+      {/* ГЕРОЙ */}
+      <section className="relative isolate flex min-h-[460px] items-end overflow-hidden md:min-h-[640px]">
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              'linear-gradient(0deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.6) 100%),' +
+              'linear-gradient(180deg, #1d2a1c 0%, #243018 18%, #6b6b6f 30%, #3a3a3e 40%, #17171a 55%, #0d0d0f 100%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-[24%] -z-10 h-14 opacity-35 blur-[18px]"
+          style={{
+            background: 'repeating-linear-gradient(90deg, #cfcfcf 0 70px, #8e2622 70px 140px)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 -z-10 h-1/2 opacity-50 blur-[3px]"
+          style={{
+            background:
+              'repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 9px)',
+          }}
+        />
+
+        <div className="mx-auto w-full max-w-7xl px-4 pb-12 md:pb-16">
+          <h1 className="f1-title text-[clamp(1.8rem,5.4vw,4rem)] text-white">
+            Точность · Скорость · Стабильность
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Готовые настройки на каждую трассу F1 25 — квалификация, гонка и дождь. Плюс личное
-            обучение с разбором вашего пилотажа.
+          <Link
+            href="/catalog"
+            className="f1-eyebrow mt-6 inline-block bg-black px-8 py-4 text-white ring-1 ring-white/20 transition-colors hover:bg-white hover:text-black"
+          >
+            Купить сейчас
+          </Link>
+        </div>
+      </section>
+
+      {/* О МАСТЕРСКОЙ */}
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center md:py-20">
+          <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Собрано Fantastiqueboy</h2>
+          <ul className="mt-8 flex flex-col gap-3 text-white/75">
+            {CREDENTIALS.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="mx-auto mt-8 max-w-xl text-white/60">
+            Каждый сетап на этом сайте собран, протестирован и обновляется в течение сезона.
+            Сейчас в каталоге {setupsCount} сетапов на {tracksCount} трассах.
           </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="bg-[#9d3f38] hover:bg-[#b34d44]">
-              <Link href="/catalog">
-                Каталог сетапов <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/25">
-              <Link href="/training">
-                <GraduationCap className="mr-2 h-4 w-4" /> Записаться на обучение
-              </Link>
-            </Button>
-          </div>
-
-          <div className="mt-8 flex items-center gap-2 lights-out">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <span key={i} className="on" />
-            ))}
-            <span className="ml-3 whitespace-nowrap text-xs uppercase tracking-[0.25em] text-muted-foreground">
-              Lights out
-            </span>
-          </div>
-
-          <div className="mt-12 grid max-w-3xl grid-cols-2 gap-4 md:grid-cols-4">
-            {[
-              { icon: Flag, value: tracksCount, label: 'Трасс в каталоге' },
-              { icon: Zap, value: setupsCount, label: 'Готовых сетапов' },
-              { icon: Trophy, value: salesCount, label: 'Покупок' },
-              { icon: Timer, value: '24/7', label: 'Доступ после оплаты' },
-            ].map((stat) => (
-              <Card key={stat.label} className="gap-1 border-border/70 bg-card/60 p-4">
-                <stat.icon className="h-5 w-5 text-[#9d3f38]" />
-                <div className="f1-title text-2xl">{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
-              </Card>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* ПАКЕТЫ */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <h2 className="f1-title text-3xl md:text-4xl">Два сезона — один гараж</h2>
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
-          <Card className="stripe-left card-hover border-border/70 bg-card/80 p-6">
-            <h3 className="f1-title text-2xl">F1 25</h3>
-            <p className="mt-2 text-muted-foreground">
-              Все трассы сезона 2025 плюс классические автодромы игры. Сетапы под квалификацию,
-              гонку и дождь.
-            </p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Трасс в каталоге: <span className="font-bold text-foreground">{packCount('f125') + packCount('classic')}</span>
-            </p>
-            <Button asChild className="mt-5 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
-              <Link href="/catalog?pack=f125">Открыть</Link>
-            </Button>
-          </Card>
-          <Card className="stripe-left card-hover border-border/70 bg-card/80 p-6">
-            <h3 className="f1-title text-2xl">2026 Season Pack</h3>
-            <p className="mt-2 text-muted-foreground">
-              Новый регламент, новая аэродинамика и отдача мотора. Сетапы, пересчитанные под машины
-              2026 года.
-            </p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Трасс в каталоге: <span className="font-bold text-foreground">{packCount('s2026')}</span>
-            </p>
-            <Button asChild className="mt-5 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
-              <Link href="/catalog?pack=s2026">Открыть</Link>
-            </Button>
-          </Card>
-        </div>
-      </section>
+      {/* ПАКЕТЫ F1 25 */}
+      <Showcase
+        title="Сетапы F1 25"
+        href="/catalog?pack=f125"
+        linkLabel="Все сетапы F1 25"
+        items={featured}
+      />
 
-      {/* ПОПУЛЯРНОЕ */}
-      <section className="mx-auto max-w-7xl px-4 pb-16">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="f1-title text-3xl md:text-4xl">Популярные сетапы</h2>
-          <Button asChild variant="ghost" className="text-[#9d3f38]">
-            <Link href="/catalog">
-              Весь каталог <ArrowRight className="ml-1.5 h-4 w-4" />
+      {/* 2026 SEASON PACK */}
+      <Showcase
+        title="2026 Season Pack"
+        href="/catalog?pack=s2026"
+        linkLabel="Все сетапы 2026"
+        items={s2026}
+      />
+
+      {/* ОБУЧЕНИЕ */}
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
+          <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">
+            Пакеты обучения
+          </h2>
+          <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((plan) => (
+              <Link key={plan.id} href="/training" className="group block text-center">
+                <div className="tile border border-white/10 transition-colors group-hover:border-white/35">
+                  <span className="f1-title relative z-10 px-6 text-center text-sm text-white/85">
+                    {plan.duration}
+                  </span>
+                </div>
+                <h3 className="f1-title mt-4 text-sm text-white">{plan.title}</h3>
+                <p className="mt-2 text-sm text-white/70">{plan.price.toFixed(0)} ₽</p>
+                <p className="mx-auto mt-2 max-w-xs text-xs text-white/45">
+                  {parseJson<string[]>(plan.features, []).slice(0, 2).join(' · ')}
+                </p>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              href="/training"
+              className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+            >
+              Оставить заявку
             </Link>
-          </Button>
+          </div>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {fallback.map((setup) => (
+      </section>
+
+      {/* ПРОЗРАЧНОСТЬ */}
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-3xl px-4 py-16 text-center md:py-20">
+          <h2 className="f1-title text-[clamp(1.3rem,3vw,2.1rem)] text-white">Полная прозрачность</h2>
+          <p className="mt-6 text-white/65">
+            Параметры сетапа — 21 значение — открываются в личном кабинете сразу после оплаты и
+            остаются там навсегда. До покупки видны только антикрылья и баланс тормозов, чтобы вы
+            понимали характер настройки.
+          </p>
+        </div>
+      </section>
+    </>
+  )
+}
+
+type ShowcaseItem = Parameters<typeof SetupCard>[0]['setup']
+
+function Showcase({
+  title,
+  href,
+  linkLabel,
+  items,
+}: {
+  title: string
+  href: string
+  linkLabel: string
+  items: ShowcaseItem[]
+}) {
+  if (!items.length) return null
+
+  return (
+    <section className="border-t border-white/10">
+      <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
+        <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">{title}</h2>
+        <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((setup) => (
             <SetupCard key={setup.id} setup={setup} />
           ))}
         </div>
-        {fallback.length === 0 && (
-          <Card className="mt-8 border-dashed border-border/70 bg-card/50 p-10 text-center text-muted-foreground">
-            Каталог пока пуст — администратор скоро добавит сетапы.
-          </Card>
-        )}
-      </section>
-
-      {/* КАК ЭТО РАБОТАЕТ */}
-      <section className="border-y border-border/70 bg-[#0d0e10]/60">
-        <div className="mx-auto max-w-7xl px-4 py-16">
-          <h2 className="f1-title text-3xl md:text-4xl">Как это работает</h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-4">
-            {[
-              { step: '01', title: 'Регистрация', text: 'Создайте аккаунт — на это уходит меньше минуты.' },
-              { step: '02', title: 'Выбор', text: 'Найдите трассу и тип сетапа: квала, гонка или дождь.' },
-              { step: '03', title: 'Оплата', text: 'FreeKassa, Platega или ручное подтверждение.' },
-              { step: '04', title: 'Гонка', text: 'Настройки открываются в профиле сразу после оплаты.' },
-            ].map((item) => (
-              <Card key={item.step} className="border-border/70 bg-card/80 p-6">
-                <span className="f1-title text-4xl text-muted-foreground/50">{item.step}</span>
-                <h3 className="mt-3 text-lg font-bold">{item.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
-              </Card>
-            ))}
-          </div>
+        <div className="mt-10 text-center">
+          <Link
+            href={href}
+            className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
+          >
+            {linkLabel}
+          </Link>
         </div>
-      </section>
-
-      {/* ОБУЧЕНИЕ CTA */}
-      <section className="mx-auto max-w-7xl px-4 py-16">
-        <Card className="relative overflow-hidden border-border/70 bg-card/80 p-8 md:p-12">
-          <div className="absolute right-0 top-0 h-full w-1/3 checkered opacity-10" />
-          <div className="relative max-w-2xl">
-            <h2 className="f1-title text-3xl md:text-4xl">Индивидуальное обучение</h2>
-            <p className="mt-3 text-muted-foreground">
-              Разбираем вашу телеметрию, ставим торможения и работу с газом. Занятия на любой
-              платформе и любом устройстве управления.
-            </p>
-            <ul className="mt-5 space-y-2 text-sm">
-              {['PC, PlayStation и Xbox', 'Руль, геймпад или клавиатура', 'Связь в Telegram или Discord', 'Персональные сетапы под ваш стиль'].map(
-                (item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[#9d3f38]" /> {item}
-                  </li>
-                )
-              )}
-            </ul>
-            <Button asChild size="lg" className="mt-7 bg-[#9d3f38] hover:bg-[#b34d44]">
-              <Link href="/training">Оставить заявку</Link>
-            </Button>
-          </div>
-        </Card>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }

@@ -46,7 +46,7 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-white/20 uppercase">{packLabel(setup.pack)}</Badge>
-            <Badge className="bg-[#9d3f38] uppercase">{typeLabel(setup.type)}</Badge>
+            <Badge className="bg-white text-black uppercase">{typeLabel(setup.type)}</Badge>
             {setup.featured && <Badge variant="outline" className="border-amber-400/60 text-amber-300">Хит продаж</Badge>}
           </div>
 
@@ -57,16 +57,16 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
 
           <div className="mt-6 flex flex-wrap gap-5 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Flag className="h-4 w-4 text-[#9d3f38]" /> {setup.track.country}
+              <Flag className="h-4 w-4 text-white" /> {setup.track.country}
             </span>
             {setup.track.laps > 0 && (
               <span className="inline-flex items-center gap-1.5">
-                <Gauge className="h-4 w-4 text-[#9d3f38]" /> {setup.track.laps} кругов ·{' '}
+                <Gauge className="h-4 w-4 text-white" /> {setup.track.laps} кругов ·{' '}
                 {setup.track.lengthKm.toFixed(3)} км
               </span>
             )}
             <span className="inline-flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-[#9d3f38]" /> {setup.sales} продаж
+              <TrendingUp className="h-4 w-4 text-white" /> {setup.sales} продаж
             </span>
           </div>
 
@@ -98,7 +98,7 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
           />
           <Card className="mt-4 border-border/70 bg-card/70 p-5 text-sm text-muted-foreground">
             <div className="flex items-center gap-2 font-semibold text-foreground">
-              <ShieldCheck className="h-4 w-4 text-[#9d3f38]" /> Что вы получаете
+              <ShieldCheck className="h-4 w-4 text-white" /> Что вы получаете
             </div>
             <ul className="mt-3 space-y-1.5">
               <li>• Полные 21 параметр настройки машины</li>

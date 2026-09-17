@@ -74,7 +74,7 @@ export function AdminPanel({ user }: { user: SessionUser }) {
           </p>
         </div>
         {unread > 0 && (
-          <Badge className="animate-pulse-red bg-[#9d3f38]">
+          <Badge className="animate-pulse-red bg-white text-black">
             {unread} новых уведомлений
           </Badge>
         )}

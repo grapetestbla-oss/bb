@@ -1,38 +1,61 @@
 import Link from 'next/link'
 
+const PAYMENTS = ['Visa', 'Mastercard', 'МИР', 'СБП', 'ЮMoney', 'FreeKassa', 'Platega']
+
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-border/70 bg-[#0d0e10]">
-      <div className="h-1 checkered opacity-70" />
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="h-6 w-1.5 rounded-sm bg-[#9d3f38]" />
-            <span className="f1-title text-lg">
-              FANTASTIQUEBOY<span className="text-[#9d3f38]"> SETUPS</span>
-            </span>
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Сетапы для F1 25 и 2026 Season Pack на все трассы игры. Проверены в лигах и тайм-триале.
-          </p>
-        </div>
-        <div>
-          <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide">Разделы</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/catalog" className="hover:text-[#9d3f38]">Каталог сетапов</Link></li>
-            <li><Link href="/training" className="hover:text-[#9d3f38]">Обучение</Link></li>
-            <li><Link href="/profile" className="hover:text-[#9d3f38]">Мои покупки</Link></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide">Важно</h4>
-          <p className="text-sm text-muted-foreground">
-            Сайт не связан с Formula 1, FIA и EA SPORTS. Все товарные знаки принадлежат их владельцам.
-          </p>
-        </div>
+    <footer className="border-t border-white/10 bg-black">
+      <div className="mx-auto max-w-3xl px-4 py-14 text-center">
+        <h2 className="f1-title text-xl text-white">Рассылка</h2>
+        <p className="mx-auto mt-3 max-w-md text-sm text-white/60">
+          Новые сетапы к каждому этапу и обновления после патчей игры.
+        </p>
+        <form className="mx-auto mt-6 flex max-w-md items-center gap-0 border-b border-white/30 pb-1">
+          <input
+            id="newsletter-email"
+            type="email"
+            placeholder="Ваш email"
+            className="flex-1 bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-white/40"
+          />
+          <button type="submit" className="f1-eyebrow px-3 py-2 text-white/80 transition-colors hover:text-white">
+            Подписаться
+          </button>
+        </form>
       </div>
-      <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} FANTASTIQUEBOY SETUPS. Все права защищены.
+
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-10">
+          <nav className="flex flex-wrap justify-center gap-x-8 gap-y-3">
+            {[
+              { href: '/catalog', label: 'Каталог сетапов' },
+              { href: '/training', label: 'Обучение' },
+              { href: '/profile', label: 'Мои покупки' },
+              { href: '/login', label: 'Вход' },
+            ].map((item) => (
+              <Link key={item.href} href={item.href} className="f1-eyebrow text-white/70 transition-colors hover:text-white">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <p className="f1-eyebrow text-white/50">Telegram · Discord · YouTube · TikTok</p>
+
+          <div className="flex flex-wrap justify-center gap-2">
+            {PAYMENTS.map((method) => (
+              <span
+                key={method}
+                className="border border-white/15 px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-white/50"
+              >
+                {method}
+              </span>
+            ))}
+          </div>
+
+          <p className="max-w-xl text-center text-xs leading-relaxed text-white/40">
+            © {new Date().getFullYear()} Fantastiqueboy Set Ups. Сайт не связан с Formula 1, FIA и EA SPORTS.
+            Все товарные знаки принадлежат их владельцам.
+          </p>
+        </div>
       </div>
     </footer>
   )

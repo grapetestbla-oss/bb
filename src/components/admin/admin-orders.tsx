@@ -64,7 +64,7 @@ export function AdminOrders({ onChange }: { onChange?: () => void }) {
             }}
             className={cn(
               'cursor-pointer px-3 py-1.5',
-              status === filter.value && 'border-[#9d3f38] bg-[#9d3f38]/15 text-[#d69a93]'
+              status === filter.value && 'border-white bg-white/10 text-white'
             )}
           >
             {filter.label}
