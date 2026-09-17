@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,17 @@ import { Label } from '@/components/ui/label'
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [needsOwner, setNeedsOwner] = useState(false)
   const [form, setForm] = useState({ login: '', email: '', password: '', contact: '' })
+
+  // Пока в магазине нет ни одного аккаунта, первая регистрация забирает панель
+  useEffect(() => {
+    if (mode !== 'register') return
+    fetch('/api/auth/status')
+      .then((r) => r.json())
+      .then((d) => setNeedsOwner(Boolean(d.needsOwner)))
+      .catch(() => undefined)
+  }, [mode])
 
   const update = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
@@ -29,7 +39,13 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Ошибка')
-      toast.success(mode === 'login' ? 'С возвращением в паддок!' : 'Аккаунт создан')
+      toast.success(
+        mode === 'login'
+          ? 'С возвращением в паддок!'
+          : data.user?.role === 'admin'
+            ? 'Аккаунт создан — панель управления ваша'
+            : 'Аккаунт создан'
+      )
       router.push(data.user?.role === 'admin' ? '/admin' : '/profile')
       router.refresh()
     } catch (error) {
@@ -56,6 +72,16 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             : 'Создайте аккаунт, чтобы покупать сетапы и записываться на обучение'}
         </p>
       </div>
+
+      {needsOwner && (
+        <div className="mb-6 border border-white/25 p-5 text-center">
+          <p className="f1-eyebrow text-white">Первый аккаунт — владелец</p>
+          <p className="mt-3 text-sm text-white/65">
+            В магазине ещё нет ни одного пользователя. Аккаунт, зарегистрированный первым, получит
+            панель управления: пилоты, сетапы, паки, заказы и платёжные системы.
+          </p>
+        </div>
+      )}
 
       <Card className="stripe-left border-border/70 bg-card/80 p-6">
         <form onSubmit={submit} className="space-y-4">

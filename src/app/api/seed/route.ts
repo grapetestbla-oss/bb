@@ -1,35 +1,18 @@
 import { db } from '@/lib/db'
-import { hashPassword } from '@/lib/auth'
 import { handleError, ok } from '@/lib/api'
 import { ALL_TRACKS } from '@/lib/f1-data'
 import { DEFAULT_PAYMENTS, DEFAULT_SITE, setSetting } from '@/lib/settings'
 
 export const dynamic = 'force-dynamic'
 
-const ADMIN_LOGIN = 'fantasticqueboy'
-const ADMIN_PASSWORD = 'fantasticqueboy'
-
 /**
- * Первичное наполнение: администратор, трассы, программы обучения и настройки.
- * Сетапы и паки не создаются — каталог наполняется вручную через панель.
+ * Первичное наполнение: трассы, пилот-владелец, программы обучения и настройки.
+ * Аккаунты не создаются: панель получает тот, кто зарегистрируется первым.
+ * Сетапы и паки тоже не создаются — каталог наполняется вручную через панель.
  */
 export async function POST() {
   try {
-    // 1. Администратор
-    const adminPassword = await hashPassword(ADMIN_PASSWORD)
-    const admin = await db.user.upsert({
-      where: { login: ADMIN_LOGIN },
-      update: { role: 'admin' },
-      create: {
-        login: ADMIN_LOGIN,
-        email: 'fantasticqueboy@fantastiqueboysetups.gg',
-        password: adminPassword,
-        role: 'admin',
-        contact: 'https://t.me/simraceboy',
-      },
-    })
-
-    // 2. Трассы — справочник, из которого выбираются сетапы в панели
+    // 1. Трассы — справочник, из которого выбираются сетапы в панели
     for (const track of ALL_TRACKS) {
       await db.track.upsert({
         where: { slug: track.slug },
@@ -38,7 +21,7 @@ export async function POST() {
       })
     }
 
-    // 3. Пилот-владелец: к нему привязываются первые сетапы, остальных заводят в панели
+    // 2. Пилот-владелец: к нему привязываются первые сетапы, остальных заводят в панели
     const owner = await db.pilot.upsert({
       where: { slug: 'fantastiqueboy' },
       update: {},
@@ -52,7 +35,7 @@ export async function POST() {
       },
     })
 
-    // 4. Программы обучения
+    // 3. Программы обучения
     const plans = [
       {
         title: 'Разбор пилотажа',
@@ -85,26 +68,30 @@ export async function POST() {
       await db.trainingPlan.create({ data: { ...plan, features: JSON.stringify(plan.features) } })
     }
 
-    // 5. Настройки по умолчанию
+    // 4. Настройки по умолчанию
     const hasPayments = await db.setting.findUnique({ where: { key: 'payments' } })
     if (!hasPayments) await setSetting('payments', DEFAULT_PAYMENTS)
     const hasSite = await db.setting.findUnique({ where: { key: 'site' } })
     if (!hasSite) await setSetting('site', DEFAULT_SITE)
 
-    const [tracks, setups, packs] = await Promise.all([
+    const [tracks, setups, packs, users] = await Promise.all([
       db.track.count(),
       db.setup.count(),
       db.pack.count(),
+      db.user.count(),
     ])
 
     return ok({
       success: true,
-      admin: admin.login,
       pilot: owner.slug,
       tracks,
       setups,
       packs,
-      note: 'Сетапы и паки не создаются: добавьте их вручную в панели.',
+      users,
+      note:
+        users === 0
+          ? 'Аккаунтов нет: первый зарегистрировавшийся получит панель управления.'
+          : 'Владелец уже зарегистрирован. Сетапы и паки добавляются вручную в панели.',
     })
   } catch (error) {
     return handleError(error)

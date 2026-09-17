@@ -134,7 +134,7 @@ if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow 443/tcp >/dev/null 2>&1 || true
 fi
 
-log "Первичное наполнение (администратор, трассы, обучение)"
+log "Первичное наполнение (трассы, обучение, настройки)"
 for i in $(seq 1 20); do
   if curl -fsS -X POST http://127.0.0.1:3000/api/seed >/dev/null 2>&1; then
     echo "Готово"
@@ -149,5 +149,5 @@ if [[ -n "$DOMAIN" ]]; then
 else
   echo "Сайт:   http://$(curl -fsS -m 5 ifconfig.me 2>/dev/null || echo 'IP-сервера')"
 fi
-echo "Панель: /admin — логин fantasticqueboy, пароль fantasticqueboy (смените в профиле!)"
+echo "Дальше:  зарегистрируйтесь на сайте — первый аккаунт получает панель /admin"
 echo "Логи:   journalctl -u ${SERVICE} -f"

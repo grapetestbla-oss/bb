@@ -18,24 +18,47 @@ export async function POST(request: Request) {
     })
     if (exists) return fail('Пользователь с таким логином или email уже существует', 409)
 
-    const user = await db.user.create({
-      data: {
-        login: String(login),
-        email: String(email).toLowerCase(),
-        password: await hashPassword(String(password)),
-        contact: contact ? String(contact) : null,
-      },
+    const hashed = await hashPassword(String(password))
+
+    // Первый зарегистрировавшийся становится владельцем магазина.
+    // Проверка и создание в одной транзакции, чтобы две одновременные
+    // регистрации не выдали админку обоим.
+    const user = await db.$transaction(async (tx) => {
+      const isFirst = (await tx.user.count()) === 0
+      return tx.user.create({
+        data: {
+          login: String(login),
+          email: String(email).toLowerCase(),
+          password: hashed,
+          role: isFirst ? 'admin' : 'user',
+          contact: contact ? String(contact) : null,
+        },
+      })
     })
 
-    await db.notification.create({
-      data: {
-        userId: null,
-        type: 'info',
-        title: 'Новая регистрация',
-        body: `Зарегистрирован пользователь ${user.login}`,
-        link: '/admin?tab=users',
-      },
-    })
+    if (user.role === 'admin') {
+      await db.notification.create({
+        data: {
+          userId: user.id,
+          type: 'info',
+          title: 'Вы владелец магазина',
+          body:
+            `Аккаунт ${user.login} зарегистрирован первым и получил доступ к панели управления. ` +
+            'Заведите пилотов, сетапы и подключите платёжные системы.',
+          link: '/admin',
+        },
+      })
+    } else {
+      await db.notification.create({
+        data: {
+          userId: null,
+          type: 'info',
+          title: 'Новая регистрация',
+          body: `Зарегистрирован пользователь ${user.login}`,
+          link: '/admin?tab=users',
+        },
+      })
+    }
 
     await setSessionCookie(user.id)
     return ok({ user: { id: user.id, login: user.login, email: user.email, role: user.role, contact: user.contact } })
