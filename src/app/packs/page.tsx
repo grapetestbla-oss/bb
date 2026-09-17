@@ -29,6 +29,10 @@ export default async function PacksPage() {
       : Promise.resolve(new Set<string>()),
   ])
 
+  const fullPacks = pilots
+    .flatMap((pilot) => pilot.packs)
+    .filter((pack) => pack.game === 'all')
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
       <div className="text-center">
@@ -39,8 +43,31 @@ export default async function PacksPage() {
         </p>
       </div>
 
-      <div className="mt-12 flex flex-col gap-16">
+      {/* Фулл паки — всё сразу, обе игры */}
+      {fullPacks.length > 0 && (
+        <section className="mt-14 border-t border-white/10 pt-14">
+          <div className="text-center">
+            <h2 className="f1-title text-lg text-white">Фулл паки</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-white/55">
+              Всё сразу: F1 25 и 2026 Season Pack от одного пилота. Новые трассы и обновления после
+              патчей входят в пак — доплачивать не нужно.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            {fullPacks.map((pack) => (
+              <PackCard
+                key={pack.id}
+                pack={{ ...pack, tracksCount: pack._count.setups, owned: ownedPackIds.has(pack.id) }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Паки по играм, сгруппированы по пилотам */}
+      <div className="mt-16 flex flex-col gap-16 border-t border-white/10 pt-14">
         {pilots
+          .map((pilot) => ({ ...pilot, packs: pilot.packs.filter((pack) => pack.game !== 'all') }))
           .filter((pilot) => pilot.packs.length > 0)
           .map((pilot) => (
             <section key={pilot.id}>

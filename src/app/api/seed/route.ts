@@ -180,7 +180,7 @@ export async function POST() {
       }
     }
 
-    // 5. Паки: все сетапы пилота по игре одной покупкой
+    // 5. Паки: по играм и отдельный фулл пак на всё сразу
     let packsCreated = 0
     for (const pilot of pilots) {
       for (const game of ['f125', 's2026'] as const) {
@@ -206,12 +206,40 @@ export async function POST() {
             game,
             price: Math.round((full * 0.45) / 10) * 10,
             oldPrice: full,
-            featured: game === 'f125',
-            order: pilot.order,
+            featured: false,
+            order: pilot.order * 10 + (game === 'f125' ? 1 : 2),
             setups: { create: setups.map((setup) => ({ setupId: setup.id })) },
           },
         })
         packsCreated += 1
+      }
+
+      // Фулл пак: обе игры, все трассы пилота
+      const fullSlug = `${pilot.slug}-full`
+      const hasFull = await db.pack.findUnique({ where: { slug: fullSlug } })
+      if (!hasFull) {
+        const all = await db.setup.findMany({ where: { pilotId: pilot.id }, select: { id: true } })
+        if (all.length) {
+          const separately = all.length * pilot.price
+          await db.pack.create({
+            data: {
+              slug: fullSlug,
+              title: `${pilot.name} — фулл пак`,
+              description:
+                `Всё сразу: ${all.length} трасс F1 25 и 2026 Season Pack от ${pilot.name}, ` +
+                'сухо и дождь на каждой. Новые трассы и обновления после патчей входят в пак — ' +
+                'доплачивать не нужно.',
+              pilotId: pilot.id,
+              game: 'all',
+              price: Math.round((separately * 0.35) / 10) * 10,
+              oldPrice: separately,
+              featured: true,
+              order: pilot.order,
+              setups: { create: all.map((setup) => ({ setupId: setup.id })) },
+            },
+          })
+          packsCreated += 1
+        }
       }
     }
 

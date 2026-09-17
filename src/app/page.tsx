@@ -22,7 +22,7 @@ export default async function HomePage() {
     db.setup.count({ where: { active: true } }),
     db.pilot.count({ where: { active: true } }),
     db.pack.findMany({
-      where: { active: true },
+      where: { active: true, game: 'all' },
       include: { pilot: true, _count: { select: { setups: true } } },
       orderBy: [{ featured: 'desc' }, { order: 'asc' }],
       take: 3,
@@ -104,10 +104,11 @@ export default async function HomePage() {
         <section className="border-t border-white/10">
           <div className="mx-auto max-w-7xl px-4 py-16 md:py-20">
             <h2 className="f1-title text-center text-[clamp(1.3rem,3vw,2.1rem)] text-white">
-              Паки пилотов
+              Фулл паки
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-center text-sm text-white/55">
-              Все трассы одного пилота одной покупкой — дешевле, чем брать сетапы по отдельности.
+              Все трассы F1 25 и 2026 Season Pack от одного пилота одной покупкой. Отдельные паки по
+              играм — на странице паков.
             </p>
             <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
               {packs.map((pack) => (
@@ -122,7 +123,7 @@ export default async function HomePage() {
                 href="/packs"
                 className="f1-eyebrow inline-block border border-white/25 px-8 py-4 text-white transition-colors hover:bg-white hover:text-black"
               >
-                Все паки
+                Все паки и наборы по играм
               </Link>
             </div>
           </div>
