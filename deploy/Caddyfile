@@ -1,0 +1,5 @@
+# Адрес сайта: домен (тогда Caddy сам выпустит сертификат) или :80 для доступа по IP.
+{$SITE_ADDRESS} {
+    encode zstd gzip
+    reverse_proxy app:3000
+}

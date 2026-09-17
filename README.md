@@ -68,6 +68,21 @@ AUTH_SECRET=<случайная строка для подписи сессий>
 FreeKassa проверяется по подписи `md5(merchant_id:amount:secret2:order_id)`,
 Platega — по заголовкам `X-MerchantId` / `X-Secret`.
 
+## Развёртывание на сервере
+
+Скрипт `deploy/deploy.sh` ставит Node.js, Bun и Caddy, собирает проект,
+поднимает systemd-сервис на `127.0.0.1:3000` и настраивает фронт:
+
+```bash
+scp fantastiqueboy-setups.tar.gz root@SERVER:/root/
+ssh root@SERVER
+mkdir -p /opt/fantastiqueboy-setups
+tar -xzf /root/fantastiqueboy-setups.tar.gz -C /opt/fantastiqueboy-setups
+cd /opt/fantastiqueboy-setups && bash deploy/deploy.sh [домен]
+```
+
+Подробности и обновление версии — в `deploy/README.md`.
+
 ## Стек
 
 Next.js 16 (App Router) · TypeScript · Prisma + SQLite · Tailwind CSS v4 · shadcn/ui · bcryptjs
