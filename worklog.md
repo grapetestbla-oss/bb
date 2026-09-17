@@ -1,4 +1,4 @@
-# APEX SETUPS — магазин сетапов для F1 25 / 2026 Season Pack
+# FANTASTIQUEBOY SETUPS — магазин сетапов для F1 25 / 2026 Season Pack
 
 ## Обзор
 Проект переписан с платформы бустинга Brawl Stars на магазин сетапов для F1 25.

@@ -32,15 +32,15 @@ export default async function HomePage() {
     <>
       {/* HERO */}
       <section className="relative overflow-hidden border-b border-border/70">
-        <div className="absolute inset-0 speed-lines opacity-40" />
-        <div className="absolute -left-40 top-10 h-80 w-80 rounded-full bg-[#e10600]/20 blur-[120px]" />
+        <div className="absolute inset-x-0 bottom-0 h-px speed-lines" />
+        <div className="absolute -left-40 top-10 h-80 w-80 rounded-full bg-[#9d3f38]/10 blur-[140px]" />
         <div className="relative mx-auto max-w-7xl px-4 py-20 md:py-28">
-          <Badge className="mb-5 bg-[#e10600]/15 text-[#ff4d38] uppercase tracking-widest">
+          <Badge className="mb-5 bg-[#9d3f38]/15 text-[#c98a82] uppercase tracking-widest">
             F1 25 · 2026 Season Pack
           </Badge>
           <h1 className="f1-title max-w-4xl text-4xl leading-[1.05] md:text-6xl lg:text-7xl">
             Сетапы, которые
-            <span className="text-[#e10600] f1-text-glow"> находят время</span>
+            <span className="text-[#c98a82]"> находят время</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
             Готовые настройки на каждую трассу F1 25 — квалификация, гонка и дождь. Плюс личное
@@ -48,7 +48,7 @@ export default async function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg" className="bg-[#e10600] hover:bg-[#ff1a12] f1-red-glow">
+            <Button asChild size="lg" className="bg-[#9d3f38] hover:bg-[#b34d44]">
               <Link href="/catalog">
                 Каталог сетапов <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -64,7 +64,7 @@ export default async function HomePage() {
             {[0, 1, 2, 3, 4].map((i) => (
               <span key={i} className="on" />
             ))}
-            <span className="ml-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            <span className="ml-3 whitespace-nowrap text-xs uppercase tracking-[0.25em] text-muted-foreground">
               Lights out
             </span>
           </div>
@@ -77,7 +77,7 @@ export default async function HomePage() {
               { icon: Timer, value: '24/7', label: 'Доступ после оплаты' },
             ].map((stat) => (
               <Card key={stat.label} className="gap-1 border-border/70 bg-card/60 p-4">
-                <stat.icon className="h-5 w-5 text-[#e10600]" />
+                <stat.icon className="h-5 w-5 text-[#9d3f38]" />
                 <div className="f1-title text-2xl">{stat.value}</div>
                 <div className="text-xs text-muted-foreground">{stat.label}</div>
               </Card>
@@ -99,7 +99,7 @@ export default async function HomePage() {
             <p className="mt-4 text-sm text-muted-foreground">
               Трасс в каталоге: <span className="font-bold text-foreground">{packCount('f125') + packCount('classic')}</span>
             </p>
-            <Button asChild className="mt-5 w-fit bg-[#e10600] hover:bg-[#ff1a12]">
+            <Button asChild className="mt-5 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
               <Link href="/catalog?pack=f125">Открыть</Link>
             </Button>
           </Card>
@@ -112,7 +112,7 @@ export default async function HomePage() {
             <p className="mt-4 text-sm text-muted-foreground">
               Трасс в каталоге: <span className="font-bold text-foreground">{packCount('s2026')}</span>
             </p>
-            <Button asChild className="mt-5 w-fit bg-[#e10600] hover:bg-[#ff1a12]">
+            <Button asChild className="mt-5 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
               <Link href="/catalog?pack=s2026">Открыть</Link>
             </Button>
           </Card>
@@ -123,7 +123,7 @@ export default async function HomePage() {
       <section className="mx-auto max-w-7xl px-4 pb-16">
         <div className="flex items-end justify-between gap-4">
           <h2 className="f1-title text-3xl md:text-4xl">Популярные сетапы</h2>
-          <Button asChild variant="ghost" className="text-[#e10600]">
+          <Button asChild variant="ghost" className="text-[#9d3f38]">
             <Link href="/catalog">
               Весь каталог <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
@@ -142,7 +142,7 @@ export default async function HomePage() {
       </section>
 
       {/* КАК ЭТО РАБОТАЕТ */}
-      <section className="border-y border-border/70 bg-[#0b0b0f]/60">
+      <section className="border-y border-border/70 bg-[#0d0e10]/60">
         <div className="mx-auto max-w-7xl px-4 py-16">
           <h2 className="f1-title text-3xl md:text-4xl">Как это работает</h2>
           <div className="mt-8 grid gap-5 md:grid-cols-4">
@@ -153,7 +153,7 @@ export default async function HomePage() {
               { step: '04', title: 'Гонка', text: 'Настройки открываются в профиле сразу после оплаты.' },
             ].map((item) => (
               <Card key={item.step} className="border-border/70 bg-card/80 p-6">
-                <span className="f1-title text-4xl text-[#e10600]/70">{item.step}</span>
+                <span className="f1-title text-4xl text-muted-foreground/50">{item.step}</span>
                 <h3 className="mt-3 text-lg font-bold">{item.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
               </Card>
@@ -176,12 +176,12 @@ export default async function HomePage() {
               {['PC, PlayStation и Xbox', 'Руль, геймпад или клавиатура', 'Связь в Telegram или Discord', 'Персональные сетапы под ваш стиль'].map(
                 (item) => (
                   <li key={item} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[#e10600]" /> {item}
+                    <CheckCircle2 className="h-4 w-4 text-[#9d3f38]" /> {item}
                   </li>
                 )
               )}
             </ul>
-            <Button asChild size="lg" className="mt-7 bg-[#e10600] hover:bg-[#ff1a12]">
+            <Button asChild size="lg" className="mt-7 bg-[#9d3f38] hover:bg-[#b34d44]">
               <Link href="/training">Оставить заявку</Link>
             </Button>
           </div>

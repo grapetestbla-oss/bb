@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { CatalogView } from '@/components/catalog-view'
 
-export const metadata = { title: 'Каталог сетапов — APEX SETUPS' }
+export const metadata = { title: 'Каталог сетапов — FANTASTIQUEBOY SETUPS' }
 
 export default function CatalogPage() {
   return (

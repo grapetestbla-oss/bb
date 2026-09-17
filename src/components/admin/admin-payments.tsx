@@ -115,7 +115,7 @@ export function AdminPayments() {
 
         <div className="mt-4 rounded-md border border-border/70 bg-black/20 p-3 text-sm">
           <p className="text-muted-foreground">URL уведомления (укажите в кабинете FreeKassa):</p>
-          <code className="mt-1 block break-all font-mono text-xs text-[#ff6a5c]">
+          <code className="mt-1 block break-all font-mono text-xs text-[#d69a93]">
             {origin}/api/payments/freekassa
           </code>
         </div>
@@ -178,7 +178,7 @@ export function AdminPayments() {
 
         <div className="mt-4 rounded-md border border-border/70 bg-black/20 p-3 text-sm">
           <p className="text-muted-foreground">Webhook для статусов транзакций:</p>
-          <code className="mt-1 block break-all font-mono text-xs text-[#ff6a5c]">
+          <code className="mt-1 block break-all font-mono text-xs text-[#d69a93]">
             {origin}/api/payments/platega
           </code>
         </div>
@@ -213,7 +213,7 @@ export function AdminPayments() {
       </Card>
 
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={saving} className="bg-[#e10600] hover:bg-[#ff1a12]">
+        <Button type="submit" disabled={saving} className="bg-[#9d3f38] hover:bg-[#b34d44]">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Сохранить настройки
         </Button>

@@ -36,12 +36,12 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-[#0b0b0f]/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-[#0d0e10]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="h-7 w-1.5 rounded-sm bg-[#e10600]" />
+          <span className="h-7 w-1.5 rounded-sm bg-[#9d3f38]" />
           <span className="f1-title text-xl tracking-tight">
-            APEX<span className="text-[#e10600]">SETUPS</span>
+            FANTASTIQUEBOY<span className="text-[#9d3f38]"> SETUPS</span>
           </span>
         </Link>
 
@@ -53,7 +53,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               className={cn(
                 'px-3 py-2 text-sm font-medium uppercase tracking-wide transition-colors',
                 pathname === item.href
-                  ? 'text-[#e10600]'
+                  ? 'text-[#9d3f38]'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -66,7 +66,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           {user ? (
             <>
               {user.role === 'admin' && (
-                <Button asChild variant="outline" size="sm" className="border-[#e10600]/60 text-[#ff4d38]">
+                <Button asChild variant="outline" size="sm" className="border-[#9d3f38]/60 text-[#c98a82]">
                   <Link href="/admin">
                     <Shield className="mr-1.5 h-4 w-4" /> Панель
                   </Link>
@@ -76,7 +76,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 <Link href="/profile">
                   <Bell className="h-4 w-4" />
                   {unread > 0 && (
-                    <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center bg-[#e10600] px-1 text-[10px]">
+                    <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center bg-[#9d3f38] px-1 text-[10px]">
                       {unread}
                     </Badge>
                   )}
@@ -97,7 +97,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               <Button asChild variant="ghost" size="sm">
                 <Link href="/login">Вход</Link>
               </Button>
-              <Button asChild size="sm" className="bg-[#e10600] hover:bg-[#ff1a12]">
+              <Button asChild size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]">
                 <Link href="/register">Регистрация</Link>
               </Button>
             </>
@@ -116,7 +116,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
       </div>
 
       {open && (
-        <div className="border-t border-border/70 bg-[#0b0b0f] md:hidden">
+        <div className="border-t border-border/70 bg-[#0d0e10] md:hidden">
           <div className="mx-auto max-w-7xl px-4 py-3 flex flex-col gap-1">
             {NAV.map((item) => (
               <Link
@@ -135,7 +135,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                   Профиль ({user.login})
                 </Link>
                 {user.role === 'admin' && (
-                  <Link href="/admin" onClick={() => setOpen(false)} className="rounded px-3 py-2 text-sm text-[#ff4d38] hover:bg-white/5">
+                  <Link href="/admin" onClick={() => setOpen(false)} className="rounded px-3 py-2 text-sm text-[#c98a82] hover:bg-white/5">
                     Панель администратора
                   </Link>
                 )}
@@ -148,7 +148,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
                 <Link href="/login" onClick={() => setOpen(false)} className="rounded px-3 py-2 text-sm hover:bg-white/5">
                   Вход
                 </Link>
-                <Link href="/register" onClick={() => setOpen(false)} className="rounded px-3 py-2 text-sm text-[#e10600] hover:bg-white/5">
+                <Link href="/register" onClick={() => setOpen(false)} className="rounded px-3 py-2 text-sm text-[#9d3f38] hover:bg-white/5">
                   Регистрация
                 </Link>
               </>
@@ -156,7 +156,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           </div>
         </div>
       )}
-      <div className="h-0.5 speed-lines" />
+      <div className="h-px speed-lines" />
     </header>
   )
 }

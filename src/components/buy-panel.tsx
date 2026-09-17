@@ -95,7 +95,7 @@ export function BuyPanel({
             onClick={buy}
             disabled={loading}
             size="lg"
-            className="mt-5 w-full bg-[#e10600] hover:bg-[#ff1a12]"
+            className="mt-5 w-full bg-[#9d3f38] hover:bg-[#b34d44]"
           >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
             Купить сетап
@@ -107,7 +107,7 @@ export function BuyPanel({
             Чтобы купить сетап, войдите в аккаунт или зарегистрируйтесь — покупки хранятся в личном
             кабинете.
           </p>
-          <Button asChild size="lg" className="mt-4 w-full bg-[#e10600] hover:bg-[#ff1a12]">
+          <Button asChild size="lg" className="mt-4 w-full bg-[#9d3f38] hover:bg-[#b34d44]">
             <Link href="/register">Создать аккаунт</Link>
           </Button>
           <Button asChild variant="outline" className="mt-2 w-full">

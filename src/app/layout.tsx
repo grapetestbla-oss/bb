@@ -10,7 +10,7 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin', 'cyr
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'APEX SETUPS — сетапы для F1 25 и 2026 Season Pack',
+  title: 'FANTASTIQUEBOY SETUPS — сетапы для F1 25 и 2026 Season Pack',
   description:
     'Магазин профессиональных сетапов для F1 25: все трассы сезона и 2026 Season Pack. Квалификация, гонка, дождь, а также индивидуальное обучение.',
   keywords: ['F1 25', 'сетапы', 'setups', '2026 Season Pack', 'обучение', 'F1 25 setup'],

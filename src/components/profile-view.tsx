@@ -83,12 +83,12 @@ export function ProfileView({
           <p className="mt-2 text-muted-foreground">
             {user.login} · {user.email}
             {user.role === 'admin' && (
-              <Badge className="ml-2 bg-[#e10600] uppercase">Администратор</Badge>
+              <Badge className="ml-2 bg-[#9d3f38] uppercase">Администратор</Badge>
             )}
           </p>
         </div>
         {user.role === 'admin' && (
-          <Button asChild variant="outline" className="border-[#e10600]/60 text-[#ff4d38]">
+          <Button asChild variant="outline" className="border-[#9d3f38]/60 text-[#c98a82]">
             <Link href="/admin">
               <Shield className="mr-2 h-4 w-4" /> Панель управления
             </Link>
@@ -116,7 +116,7 @@ export function ProfileView({
           {purchases.length === 0 && (
             <Card className="border-dashed border-border/70 bg-card/50 p-10 text-center">
               <p className="text-muted-foreground">Вы ещё не покупали сетапы.</p>
-              <Button asChild className="mx-auto mt-4 w-fit bg-[#e10600] hover:bg-[#ff1a12]">
+              <Button asChild className="mx-auto mt-4 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
                 <Link href="/catalog">В каталог</Link>
               </Button>
             </Card>
@@ -138,7 +138,7 @@ export function ProfileView({
                     {STATUS[order.status]?.label ?? order.status}
                   </Badge>
                   {order.status === 'pending' && order.payUrl && (
-                    <Button asChild size="sm" className="bg-[#e10600] hover:bg-[#ff1a12]">
+                    <Button asChild size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]">
                       <a href={order.payUrl} target="_blank" rel="noreferrer">Оплатить</a>
                     </Button>
                   )}
@@ -162,7 +162,7 @@ export function ProfileView({
           {trainings.length === 0 && (
             <Card className="border-dashed border-border/70 bg-card/50 p-10 text-center">
               <p className="text-muted-foreground">Заявок на обучение пока нет.</p>
-              <Button asChild className="mx-auto mt-4 w-fit bg-[#e10600] hover:bg-[#ff1a12]">
+              <Button asChild className="mx-auto mt-4 w-fit bg-[#9d3f38] hover:bg-[#b34d44]">
                 <Link href="/training">Оставить заявку</Link>
               </Button>
             </Card>
@@ -187,7 +187,7 @@ export function ProfileView({
                     </Badge>
                   )}
                   {order.status === 'pending' && order.payUrl && (
-                    <Button asChild size="sm" className="bg-[#e10600] hover:bg-[#ff1a12]">
+                    <Button asChild size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]">
                       <a href={order.payUrl} target="_blank" rel="noreferrer">Оплатить</a>
                     </Button>
                   )}
@@ -305,7 +305,7 @@ function ProfileSettings({ user }: { user: SessionUser }) {
             onChange={(e) => setForm((f) => ({ ...f, newPassword: e.target.value }))}
           />
         </div>
-        <Button type="submit" disabled={loading} className="bg-[#e10600] hover:bg-[#ff1a12]">
+        <Button type="submit" disabled={loading} className="bg-[#9d3f38] hover:bg-[#b34d44]">
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Сохранить
         </Button>
       </form>

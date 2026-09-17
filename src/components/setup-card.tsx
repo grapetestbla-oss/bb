@@ -32,7 +32,7 @@ export function SetupCard({ setup }: { setup: SetupCardData }) {
         <span className="text-2xl leading-none">{setup.track.flag}</span>
         <div className="flex gap-1.5">
           {setup.featured && (
-            <Badge className="bg-[#e10600] text-[10px] uppercase tracking-wide">Хит</Badge>
+            <Badge className="bg-[#9d3f38] text-[10px] uppercase tracking-wide">Хит</Badge>
           )}
           <Badge variant="outline" className="border-white/20 text-[10px] uppercase">
             {packLabel(setup.pack)}
@@ -74,7 +74,7 @@ export function SetupCard({ setup }: { setup: SetupCardData }) {
               </div>
             )}
           </div>
-          <Button asChild size="sm" className="bg-[#e10600] hover:bg-[#ff1a12]">
+          <Button asChild size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]">
             <Link href={`/setup/${setup.id}`}>
               <ShoppingCart className="mr-1.5 h-4 w-4" />
               {setup.owned ? 'Открыть' : 'Купить'}

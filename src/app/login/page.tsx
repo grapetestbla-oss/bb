@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { AuthForm } from '@/components/auth-form'
 import { getCurrentUser } from '@/lib/auth'
 
-export const metadata = { title: 'Вход — APEX SETUPS' }
+export const metadata = { title: 'Вход — FANTASTIQUEBOY SETUPS' }
 export const dynamic = 'force-dynamic'
 
 export default async function LoginPage() {

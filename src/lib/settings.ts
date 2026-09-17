@@ -39,7 +39,7 @@ export const DEFAULT_PAYMENTS: PaymentSettings = {
 }
 
 export const DEFAULT_SITE: SiteSettings = {
-  title: 'APEX SETUPS',
+  title: 'FANTASTIQUEBOY SETUPS',
   subtitle: 'Профессиональные сетапы для F1 25 и 2026 Season Pack',
   contact: '@fantasticqueboy',
 }

@@ -87,7 +87,7 @@ export function TrainingView({
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
       <div className="max-w-3xl">
-        <Badge className="bg-[#e10600]/15 uppercase tracking-widest text-[#ff4d38]">Обучение</Badge>
+        <Badge className="bg-[#9d3f38]/15 uppercase tracking-widest text-[#c98a82]">Обучение</Badge>
         <h1 className="f1-title mt-4 text-4xl md:text-5xl">Тренировки с инженером</h1>
         <p className="mt-3 text-muted-foreground">
           Выберите программу, заполните анкету — и заявка попадёт напрямую в панель. После оплаты с
@@ -102,10 +102,10 @@ export function TrainingView({
             onClick={() => setPlanId(plan.id)}
             className={cn(
               'card-hover cursor-pointer border-border/70 bg-card/80 p-6',
-              planId === plan.id && 'border-[#e10600] bg-[#e10600]/5'
+              planId === plan.id && 'border-[#9d3f38] bg-[#9d3f38]/5'
             )}
           >
-            <GraduationCap className="h-6 w-6 text-[#e10600]" />
+            <GraduationCap className="h-6 w-6 text-[#9d3f38]" />
             <h3 className="mt-3 text-xl font-bold">{plan.title}</h3>
             <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> {plan.duration}
@@ -114,7 +114,7 @@ export function TrainingView({
             <ul className="mt-4 space-y-1.5 text-sm">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#e10600]" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#9d3f38]" />
                   <span>{feature}</span>
                 </li>
               ))}
@@ -227,7 +227,7 @@ export function TrainingView({
                   <span className="f1-title text-2xl">{selected?.price.toFixed(0)} ₽</span>
                 </div>
 
-                <Button type="submit" disabled={loading} size="lg" className="w-full bg-[#e10600] hover:bg-[#ff1a12]">
+                <Button type="submit" disabled={loading} size="lg" className="w-full bg-[#9d3f38] hover:bg-[#b34d44]">
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                   Отправить заявку и оплатить
                 </Button>
@@ -239,7 +239,7 @@ export function TrainingView({
                 Чтобы оставить заявку на обучение, войдите в аккаунт.
               </p>
               <div className="mt-4 flex justify-center gap-3">
-                <Button asChild className="bg-[#e10600] hover:bg-[#ff1a12]">
+                <Button asChild className="bg-[#9d3f38] hover:bg-[#b34d44]">
                   <Link href="/register">Регистрация</Link>
                 </Button>
                 <Button asChild variant="outline">
@@ -268,8 +268,8 @@ function Option({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-md border border-border/70 px-4 py-2 text-sm transition-colors hover:border-[#e10600]/60',
-        active && 'border-[#e10600] bg-[#e10600]/15 text-[#ff6a5c]'
+        'rounded-md border border-border/70 px-4 py-2 text-sm transition-colors hover:border-[#9d3f38]/60',
+        active && 'border-[#9d3f38] bg-[#9d3f38]/15 text-[#d69a93]'
       )}
     >
       {children}

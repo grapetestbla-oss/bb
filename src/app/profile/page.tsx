@@ -5,7 +5,7 @@ import { parseJson } from '@/lib/api'
 import { ProfileView } from '@/components/profile-view'
 import type { SetupData } from '@/lib/f1-data'
 
-export const metadata = { title: 'Личный кабинет — APEX SETUPS' }
+export const metadata = { title: 'Личный кабинет — FANTASTIQUEBOY SETUPS' }
 export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {

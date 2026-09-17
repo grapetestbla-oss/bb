@@ -65,7 +65,7 @@ export function AdminTrainings({ onChange }: { onChange?: () => void }) {
             }}
             className={cn(
               'cursor-pointer px-3 py-1.5',
-              status === filter.value && 'border-[#e10600] bg-[#e10600]/15 text-[#ff6a5c]'
+              status === filter.value && 'border-[#9d3f38] bg-[#9d3f38]/15 text-[#d69a93]'
             )}
           >
             {filter.label}
@@ -95,7 +95,7 @@ export function AdminTrainings({ onChange }: { onChange?: () => void }) {
                 <Badge
                   variant="outline"
                   className={cn(
-                    request.status === 'new' && 'border-[#e10600]/60 text-[#ff6a5c]',
+                    request.status === 'new' && 'border-[#9d3f38]/60 text-[#d69a93]',
                     request.status === 'taken' && 'border-amber-500/40 text-amber-300',
                     request.status === 'done' && 'border-emerald-500/40 text-emerald-300'
                   )}
@@ -118,14 +118,14 @@ export function AdminTrainings({ onChange }: { onChange?: () => void }) {
 
             <div className="mt-4 grid gap-2 text-sm">
               <span className="inline-flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-[#e10600]" />
+                <MessageCircle className="h-4 w-4 text-[#9d3f38]" />
                 {request.contactType === 'telegram' ? 'Telegram' : 'Discord'}: {request.contact}
               </span>
               <span className="inline-flex items-center gap-2">
-                <Monitor className="h-4 w-4 text-[#e10600]" /> Платформа: {platformLabel(request.platform)}
+                <Monitor className="h-4 w-4 text-[#9d3f38]" /> Платформа: {platformLabel(request.platform)}
               </span>
               <span className="inline-flex items-center gap-2">
-                <Gamepad2 className="h-4 w-4 text-[#e10600]" /> Устройство: {deviceLabel(request.device)}
+                <Gamepad2 className="h-4 w-4 text-[#9d3f38]" /> Устройство: {deviceLabel(request.device)}
               </span>
             </div>
 
@@ -147,7 +147,7 @@ export function AdminTrainings({ onChange }: { onChange?: () => void }) {
 
             <div className="mt-4 flex flex-wrap gap-2">
               {request.status === 'new' && (
-                <Button size="sm" className="bg-[#e10600] hover:bg-[#ff1a12]" onClick={() => update(request.id, 'taken')}>
+                <Button size="sm" className="bg-[#9d3f38] hover:bg-[#b34d44]" onClick={() => update(request.id, 'taken')}>
                   Взять заявку
                 </Button>
               )}

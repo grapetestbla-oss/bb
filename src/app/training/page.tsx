@@ -5,7 +5,7 @@ import { availableProviders } from '@/lib/payments'
 import { getPaymentSettings } from '@/lib/settings'
 import { TrainingView } from '@/components/training-view'
 
-export const metadata = { title: 'Обучение — APEX SETUPS' }
+export const metadata = { title: 'Обучение — FANTASTIQUEBOY SETUPS' }
 export const dynamic = 'force-dynamic'
 
 export default async function TrainingPage() {

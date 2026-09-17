@@ -102,7 +102,7 @@ export function AdminTracks() {
           {seeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Загрузить трассы и сетапы F1 25 / 2026
         </Button>
-        <Button onClick={() => setOpen(true)} className="ml-auto bg-[#e10600] hover:bg-[#ff1a12]">
+        <Button onClick={() => setOpen(true)} className="ml-auto bg-[#9d3f38] hover:bg-[#b34d44]">
           <Plus className="mr-1.5 h-4 w-4" /> Добавить трассу
         </Button>
       </div>
@@ -181,7 +181,7 @@ export function AdminTracks() {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
-              <Button type="submit" disabled={saving} className="bg-[#e10600] hover:bg-[#ff1a12]">
+              <Button type="submit" disabled={saving} className="bg-[#9d3f38] hover:bg-[#b34d44]">
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Добавить
               </Button>
             </div>

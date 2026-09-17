@@ -112,7 +112,7 @@ export function CatalogView() {
 
       <Card className="mt-6 gap-4 border-border/70 bg-card/70 p-5">
         <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide">
-          <SlidersHorizontal className="h-4 w-4 text-[#e10600]" /> Фильтры
+          <SlidersHorizontal className="h-4 w-4 text-[#9d3f38]" /> Фильтры
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export function CatalogView() {
         </div>
 
         {(pack || type || track || search) && (
-          <Button variant="ghost" size="sm" className="w-fit text-[#e10600]" onClick={reset}>
+          <Button variant="ghost" size="sm" className="w-fit text-[#9d3f38]" onClick={reset}>
             Сбросить фильтры
           </Button>
         )}
@@ -188,8 +188,8 @@ function FilterChip({
       onClick={onClick}
       variant="outline"
       className={cn(
-        'cursor-pointer select-none border-border/70 px-3 py-1.5 text-xs font-medium transition-colors hover:border-[#e10600]/70',
-        active && 'border-[#e10600] bg-[#e10600]/15 text-[#ff6a5c]'
+        'cursor-pointer select-none border-border/70 px-3 py-1.5 text-xs font-medium transition-colors hover:border-[#9d3f38]/70',
+        active && 'border-[#9d3f38] bg-[#9d3f38]/15 text-[#d69a93]'
       )}
     >
       {children}

@@ -79,7 +79,7 @@ export async function POST() {
       update: { role: 'admin' },
       create: {
         login: ADMIN_LOGIN,
-        email: 'fantasticqueboy@apexsetups.gg',
+        email: 'fantasticqueboy@fantastiqueboysetups.gg',
         password: adminPassword,
         role: 'admin',
         contact: '@fantasticqueboy',

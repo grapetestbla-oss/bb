@@ -40,7 +40,7 @@ export function AdminUsers() {
               <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
               <td className="px-4 py-3 text-muted-foreground">{user.contact || '—'}</td>
               <td className="px-4 py-3">
-                <Badge variant="outline" className={user.role === 'admin' ? 'border-[#e10600]/60 text-[#ff6a5c]' : 'border-white/20'}>
+                <Badge variant="outline" className={user.role === 'admin' ? 'border-[#9d3f38]/60 text-[#d69a93]' : 'border-white/20'}>
                   {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
                 </Badge>
               </td>
