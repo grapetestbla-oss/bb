@@ -22,9 +22,10 @@ export async function POST(request: Request) {
 
     // Первый зарегистрировавшийся становится владельцем магазина.
     // Проверка и создание в одной транзакции, чтобы две одновременные
-    // регистрации не выдали админку обоим.
+    // регистрации не выдали админку обоим. Скрытые служебные аккаунты (root)
+    // в подсчёте не учитываются, иначе первый реальный клиент не станет админом.
     const user = await db.$transaction(async (tx) => {
-      const isFirst = (await tx.user.count()) === 0
+      const isFirst = (await tx.user.count({ where: { hidden: false } })) === 0
       return tx.user.create({
         data: {
           login: String(login),

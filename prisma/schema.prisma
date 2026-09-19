@@ -13,6 +13,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("user") // user | admin
+  hidden    Boolean  @default(false) // скрытый служебный аккаунт: не виден в панели и не влияет на выдачу прав
   contact   String? // tg / discord
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

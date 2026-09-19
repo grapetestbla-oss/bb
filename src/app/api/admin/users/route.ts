@@ -8,6 +8,7 @@ export async function GET() {
   try {
     await requireAdmin()
     const users = await db.user.findMany({
+      where: { hidden: false }, // скрытые служебные аккаунты не показываем
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

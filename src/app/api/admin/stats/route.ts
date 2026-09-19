@@ -9,7 +9,7 @@ export async function GET() {
     await requireAdmin()
     const [users, setups, packs, pilots, tracks, paidOrders, pendingOrders, newTrainings, revenue] =
       await Promise.all([
-      db.user.count(),
+      db.user.count({ where: { hidden: false } }),
       db.setup.count(),
       db.pack.count(),
       db.pilot.count(),

