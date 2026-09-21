@@ -150,3 +150,74 @@ model PlatformSettings {
   value       String
   updatedAt   DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// KPGen — микро-SaaS: генератор коммерческих предложений.
+// Полностью изолирован от BrawlBoost: свои пользователи, подписки и платежи.
+// ---------------------------------------------------------------------------
+
+model KpUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  company   String   @default("")
+  plan      String   @default("free") // free, pro, business
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  proposals     KpProposal[]
+  payments      KpPayment[]
+  subscriptions KpSubscription[]
+}
+
+model KpSubscription {
+  id                 String   @id @default(cuid())
+  userId             String
+  plan               String   // pro, business
+  status             String   @default("active") // active, cancelled, expired
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  provider           String   @default("mock")
+  providerRef        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user KpUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model KpProposal {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  clientName String
+  brief      String   @default("{}")       // JSON брифа
+  content    String   @default("")         // markdown
+  engine     String   @default("template") // template | claude
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user KpUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model KpPayment {
+  id          String   @id @default(cuid())
+  userId      String
+  plan        String
+  amount      Float
+  currency    String   @default("RUB")
+  status      String   @default("pending") // pending, succeeded, failed
+  provider    String   @default("mock")
+  providerRef String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user KpUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
