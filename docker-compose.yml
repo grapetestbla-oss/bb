@@ -1,6 +1,26 @@
-version: '3.8'
-
 services:
+  # Накатывает схему в том с базой перед стартом приложения.
+  # Работает из builder-стадии: там полный node_modules с Prisma CLI, в
+  # standalone-образе приложения его нет. db push идемпотентен — на пустой
+  # базе создаёт таблицы, на существующей доводит до схемы, данные не трогает.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: brawlboost-migrate
+    environment:
+      - DATABASE_URL=file:/app/db/custom.db
+    volumes:
+      - brawlboost-db:/app/db
+    # Контейнер работает от root, а приложение — от uid 1001, поэтому
+    # после миграции отдаём файлы базы владельцу приложения.
+    command: >
+      sh -c "node node_modules/prisma/build/index.js db push --skip-generate &&
+             chown -R 1001:1001 /app/db"
+    networks:
+      - brawlboost-network
+
   # Main Next.js application
   app:
     build:
@@ -11,12 +31,23 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=file:./db/custom.db
+      # Путь абсолютный намеренно: для SQLite Prisma считает относительный путь
+      # от каталога prisma/schema.prisma, и file:./db/... указал бы мимо тома.
+      - DATABASE_URL=file:/app/db/custom.db
       - NODE_ENV=production
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-this-to-random-string}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      # Секреты KPGen. Без них вход и вебхуки в проде не работают, поэтому
+      # compose падает сразу, а не поднимает наполовину рабочее приложение.
+      - KP_SESSION_SECRET=${KP_SESSION_SECRET:?задайте KP_SESSION_SECRET в .env (openssl rand -base64 32)}
+      - KP_WEBHOOK_SECRET=${KP_WEBHOOK_SECRET:?задайте KP_WEBHOOK_SECRET в .env (openssl rand -base64 32)}
+      # Необязательно: с ключом текст КП пишет Claude, без него — шаблонный сборщик.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     volumes:
       - brawlboost-db:/app/db
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     networks:
       - brawlboost-network
 

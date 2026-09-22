@@ -50,15 +50,26 @@ fi
 echo -e "${YELLOW}[4/8] Setting up environment...${NC}"
 if [ ! -f .env ]; then
     cp .env.example .env
-    # Generate a random secret
-    RANDOM_SECRET=$(openssl rand -base64 32)
-    sed -i "s/change-this-to-a-random-string-at-least-32-chars/$RANDOM_SECRET/" .env
+    # Каждому секрету — свой случайный ключ, а не один на все три placeholder'а.
+    sed -i "s|^KP_SESSION_SECRET=.*|KP_SESSION_SECRET=$(openssl rand -base64 32)|" .env
+    sed -i "s|^KP_WEBHOOK_SECRET=.*|KP_WEBHOOK_SECRET=$(openssl rand -base64 32)|" .env
+    sed -i "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=$(openssl rand -base64 32)|" .env
+    # DATABASE_URL внутри контейнера задаёт docker-compose; в .env он только
+    # мешает, если кто-то запустит prisma на хосте с чужим путём.
+    sed -i "/^DATABASE_URL=/d" .env
     if [ -n "$DOMAIN" ]; then
-        sed -i "s|http://localhost:3000|https://$DOMAIN|" .env
+        sed -i "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=https://$DOMAIN|" .env
     fi
-    echo -e "${GREEN}.env file created with random secret!${NC}"
+    echo -e "${GREEN}.env created, secrets generated${NC}"
 else
-    echo -e "${GREEN}.env file already exists.${NC}"
+    echo -e "${GREEN}.env already exists — secrets left untouched${NC}"
+    for VAR in KP_SESSION_SECRET KP_WEBHOOK_SECRET; do
+        if ! grep -q "^$VAR=..*" .env; then
+            echo -e "${RED}В .env не задан $VAR — compose не запустится.${NC}"
+            echo -e "${YELLOW}Добавьте: echo \"$VAR=\$(openssl rand -base64 32)\" >> .env${NC}"
+            exit 1
+        fi
+    done
 fi
 
 # ---- 5. Update Caddy config for domain ----

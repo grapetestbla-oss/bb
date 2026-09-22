@@ -63,6 +63,8 @@ API — под `/api/kp`: `auth`, `account`, `proposals`, `proposals/[id]`,
 
 После изменения схемы: `bun run db:push`.
 
+Разворачивание на сервере — `docs/deploy.md`.
+
 ## Генерация текста
 
 `src/lib/kp/generator/index.ts` выбирает движок:
