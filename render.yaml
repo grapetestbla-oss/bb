@@ -1,0 +1,19 @@
+# Разворачивание на Render (бесплатный тариф).
+# Базу берите отдельно — например бесплатный PostgreSQL на Neon — и укажите
+# её строку подключения в переменной DATABASE_URL при создании сервиса.
+services:
+  - type: web
+    name: f1-icons-league
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      # Прямое (непуловое) подключение — нужно для миграций, если провайдер его даёт
+      - key: DIRECT_URL
+        sync: false

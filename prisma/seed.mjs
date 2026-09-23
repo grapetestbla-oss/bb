@@ -1,10 +1,11 @@
 /**
  * Наполнение базы стартовыми данными F1 Icons League.
- * Запуск: bun run db:seed
+ * Запуск: bun run db:seed (или node prisma/seed.mjs)
  *
  * Скрипт идемпотентный: главный администратор создаётся при первом запуске,
  * существующие сезон/команды/этапы не дублируются.
  */
+import '../scripts/load-env.mjs'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 

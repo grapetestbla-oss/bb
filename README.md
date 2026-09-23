@@ -49,21 +49,36 @@
 Пароль можно изменить в личном кабинете (раздел «Настройки профиля»), а логин/пароль стартового
 администратора — переменными `SEED_ADMIN_LOGIN` и `SEED_ADMIN_PASSWORD` при первом запуске сида.
 
-## Запуск
+## Запуск локально
 
 ```bash
 bun install
 cp .env.example .env      # DATABASE_URL для SQLite
-bun run setup             # prisma generate + db push + сид (админ, сезон, команды, календарь)
+bun run setup             # схема + база + стартовые данные (админ, сезон, команды, календарь)
 bun run dev               # http://localhost:3000
 ```
 
-Продакшен:
+Продакшен-сборка:
 
 ```bash
-bun run build
+bun run build             # миграция, стартовые данные и сборка
 bun run start
 ```
+
+## Публикация в интернете
+
+Подробная инструкция — в [DEPLOY.md](DEPLOY.md). Коротко: бесплатно разворачивается на
+**Vercel + Neon (PostgreSQL)** за 5–10 минут, есть готовый `render.yaml` для Render
+и `Dockerfile` / `docker-compose.yml` для своего сервера.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/grapetestbla-oss/bb/tree/claude/f1-icons-league-site-jst0uo)
+
+Кнопка разворачивает ветку с сайтом лиги. Если ветка уже слита в `main`, можно импортировать
+репозиторий обычным способом через [vercel.com/new](https://vercel.com/new).
+
+Тип базы определяется автоматически по `DATABASE_URL`: `file:…` — SQLite для локальной
+разработки, `postgresql://…` — PostgreSQL на хостинге. На бесплатных хостингах SQLite
+использовать нельзя: их диск не сохраняется между перезапусками, и данные будут теряться.
 
 ## Стек
 
@@ -83,4 +98,8 @@ src/lib/standings.ts          сборка личного и командног�
 src/app/api/…                 REST-маршруты (auth, profile, applications, admin/*)
 src/app/…                     страницы сайта, /cabinet, /admin
 src/components/admin/…        вкладки админ-панели
+scripts/build.mjs             сборка: схема под нужную базу, миграция, сид, next build
+scripts/prepare-db.mjs        переключение SQLite ↔ PostgreSQL по DATABASE_URL
+scripts/db-deploy.mjs         миграция и сид при старте контейнера (Docker)
+DEPLOY.md                     инструкция по бесплатному хостингу
 ```

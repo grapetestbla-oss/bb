@@ -1,24 +1,44 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: f1-icons-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: f1icons
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-f1icons}
+      POSTGRES_DB: f1icons
+    volumes:
+      - f1icons-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U f1icons"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - f1icons-network
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: f1-icons-league
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=file:../db/f1icons.db
-      - NODE_ENV=production
-    volumes:
-      - f1icons-db:/app/db
+      DATABASE_URL: postgresql://f1icons:${POSTGRES_PASSWORD:-f1icons}@db:5432/f1icons
+      NODE_ENV: production
+      # Логин и пароль главного администратора при первом запуске
+      SEED_ADMIN_LOGIN: ${SEED_ADMIN_LOGIN:-F1Icons_Admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-F1Icons_Admin(cloud)}
     networks:
       - f1icons-network
 
 volumes:
-  f1icons-db:
+  f1icons-pgdata:
     driver: local
 
 networks:
